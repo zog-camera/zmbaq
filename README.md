@@ -2,7 +2,7 @@ ZOG Zmbaq : ultimately buggy code at the moment. It's under re-writing process.
 It's under development and needs the goals of the project to be documented instead of being
 "spherical horse inbound into 4-dimensional cube".
 
-It pretends to be(soone) am open source video surveillance system -- a server for incoming video streams,
+It pretends to be soon an open source video surveillance system -- a server for incoming video streams,
 GUI client for PC and R.Pi, R.Pi h264 video streamer.
 
 Internal implementation of the software may be denoted as the following scheme
