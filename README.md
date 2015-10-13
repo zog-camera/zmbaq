@@ -14,9 +14,7 @@ to filesystem, just to test existing implementation entities of the C++ code.
 Current work is focused on motion detection algorithms via OpenCV, GUI client is next.
 
 
-Authors:
-Alexander Sorvilov
-Bogdan Maslowsky
+Authors: Alexander Sorvilov, Bogdan Maslowsky.
 
 # Dependencies:
 + libc6-dev-i386
