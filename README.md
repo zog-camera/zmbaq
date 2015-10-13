@@ -7,7 +7,7 @@ GUI client for PC and R.Pi, R.Pi h264 video streamer.
 
 Internal implementation of the software may be denoted as the following scheme
  (it's not electrical scheme, just using that symbols for some processes like data copying, logic, some processing)
-![ZMBAQ internals scheme](https://github.com/zog-camera/zmbaq/docs/zmbaq_internal.png)
+![ZMBAQ internals scheme](https://github.com/zog-camera/zmbaq/blob/master/docs/zmbaq_internal.png)
 
 At the moment, there is only 1 working piece: a small utility "rtsp_dumper" that dumps RTSP/RTP(from .sdp file) H264 streams
 to filesystem, just to test existing implementation entities of the C++ code.
