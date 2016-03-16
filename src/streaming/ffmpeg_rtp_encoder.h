@@ -32,7 +32,7 @@ extern "C" {
 #include "timingutils.h"
 #include "mbytearray.h"
 #include "jsoncpp/json/json.h"
-#include "glm/glm/vec2.hpp"
+#include "glm/vec2.hpp"
 
 
 struct AVFrame;

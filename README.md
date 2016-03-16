@@ -33,7 +33,7 @@ Authors: Alexander Sorvilov, Bogdan Maslowsky.
 + Urho3D game engine for the GUI
 
 ## Preconditions
-   Download and install Qt5.4 SDK, create a directory for the dependencies installation
+   Create a directory for the dependencies installation
   (let's name it "broot"). Install Git, CMake, CMake-GUI, MSVC (if needed)
 ```BASH
 	mkdir "C:\Users\Max\broot" #windows

@@ -2,8 +2,8 @@
   Origin https://github.com/JVanDamme/ProgressiveDelaunay
   Modified.
  */
-#include "glm/glm/vec2.hpp"
-#include "glm/glm/vec3.hpp"
+#include "glm/vec2.hpp"
+#include "glm/vec3.hpp"
 #include <vector>
 #include <memory>
 

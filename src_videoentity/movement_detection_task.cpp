@@ -425,19 +425,20 @@ public:
         mode = DetectionMode::FULL_FRAME;
     }
 
+    typedef std::map<ZMBCommon::MByteArray, std::vector<glm::ivec2>> LinesMap;
+    typedef std::pair<ZMBCommon::MByteArray, std::vector<glm::ivec2>> NamedLine;
+
     void detect(const ZMB::MImage& frame)
     {
         if (need_mask_update)
         {
             std::vector<JVa::Vector3> input;
-            const std::map<ZMBCommon::MByteArray,
-                    std::vector<glm::ivec2>>&
-                    zmap(ignored_polygonal_zones_map);
+            const LinesMap& zmap(ignored_polygonal_zones_map);
             //for all polygonal convex zones
-            for (const std::vector<glm::ivec2>& line : zmap)
+            for (const NamedLine& line : zmap)
             {
                 //vec2(x,y)->vec3(x,y,0)
-                for (const glm::ivec2& v : line)
+                for (const glm::ivec2& v : line.second)
                 {
                     input.push_back(JVa::Vector3(v.x, v.y, 0.0));
                 }
@@ -474,11 +475,11 @@ public:
         case DetectionMode::POLY_INTEREST_ZONES:
             break;
         case DetectionMode::RECTANGLE_INTEREST_ZONE:
-            for (auto iter = rect_zones_map.begin(); iter != rect_zones_map.end(); ++iter)
+
+            for (auto desc: rect_zones_map)
             {
-                desc = std::pair<ZMB::MRegion, std::shared_ptr<CVBGS::MOG2Algo>>& pair(*iter);
-                if (desc.state == CVBGS::MotionDescription::State::Motion)
-                    break;
+//                if (desc.second- == CVBGS::MotionDescription::Moving)
+//                    break;
             }
             break;
         default:
@@ -503,6 +504,6 @@ MovementDetectionTask::MovementDetectionTask(const std::string &name)
 {
 
 }
-}
-//namespace ZMBEntities
+
+} //namespace ZMBEntities
 

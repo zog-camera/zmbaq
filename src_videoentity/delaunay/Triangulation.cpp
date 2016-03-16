@@ -71,7 +71,7 @@ inline bool isInside(const Vector3 &a, const Vector3 &b, const Vector3 &c, const
 /**
  *  Get the enclosing triangle
  */
-void enclosingTriangle(Vector3* p, int len, Vector3 &a, Vector3 &b, Vector3 &c)
+void enclosingTriangle(const Vector3* p, int len, Vector3 &a, Vector3 &b, Vector3 &c)
 {
     int n = len;
     double xmin, xmax, ymin, ymax;

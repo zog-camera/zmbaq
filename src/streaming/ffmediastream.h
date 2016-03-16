@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef FFMEDIASTREAM_H
 #define FFMEDIASTREAM_H
-#include <glm/glm/vec2.hpp>
+#include <glm/vec2.hpp>
 #include <string>
 #include "zmbaq_common.h"
 #include "mbytearray.h"
