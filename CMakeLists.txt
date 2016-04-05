@@ -144,7 +144,7 @@ if (WITH_GUI)
   file(GLOB_RECURSE files_gui src_gui_urho3d/*.cpp src_gui_urho3d/*.h)
   add_executable(zmbaq_gui ${files_gui} ${RC_OUT})
   target_link_libraries(zmbaq_gui ${ASAN_LINK_FLAGS} ${PROF_LINK_FLAGS}
-   -ltbb -ltbbmalloc ${u3dlib}
+   -ltbb -ltbbmalloc ${u3dlib} -ldl -lGL -lGLEW
    videoentity
   )
 
