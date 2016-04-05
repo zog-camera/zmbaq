@@ -13,7 +13,8 @@ option(NO_V4L "Disable Video4Linux support" OFF)
 set(HOMIAK "$ENV{HOME}")
 set(OF_DIR "${CMAKE_CURRENT_SOURCE_DIR}/src_foreign_repo/openFrameworks"
          CACHE PATH "Path to openFrameworks build")
-set(FFMPEG_DIR "${HOMIAK}/coding/broot" CACHE PATH "Path to FFMpeg build")
+set(FFMPEG_DIR "${HOMIAK}/coding/broot_debug" CACHE PATH "Path to FFMpeg install dir")
+set(URHO3D_DIR "${FFMPEG_DIR}" CACHE PATH "Path to Urho3D install dir")
 set(ZMQ_DIR "${FFMPEG_DIR}" CACHE PATH "Path to ZeroMq 4.x version")
 set(OPENCV_DIR "${FFMPEG_DIR}" CACHE PATH "OpenCV >= 3.0 installation path")
 set(CMAKE_CXX_FLAGS "-std=c++11 -msse2")
@@ -134,12 +135,16 @@ target_link_libraries(rtsp_dumper videoentity -lPocoFoundation)
 ##########################################
 
 if (WITH_GUI)
-  find_library(URHO3D_LIB NAMES Urho3D PATHS ${FFMPEG_DIR}/lib)
+  find_library(u3dlib NAMES Urho3D
+      PATHS
+      ${URHO3D_DIR}/lib64 ${URHO3D_DIR}/lib64/Urho3D/
+      ${FFMPEG_DIR}/lib)
+  message("u3d lib: ${u3dlib} dir: ${URHO3D_DIR}")
 
   file(GLOB_RECURSE files_gui src_gui_urho3d/*.cpp src_gui_urho3d/*.h)
   add_executable(zmbaq_gui ${files_gui} ${RC_OUT})
   target_link_libraries(zmbaq_gui ${ASAN_LINK_FLAGS} ${PROF_LINK_FLAGS}
-   -ltbb -ltbbmalloc ${URHO3D_LIB}
+   -ltbb -ltbbmalloc ${u3dlib}
    videoentity
   )
 

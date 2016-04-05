@@ -44,7 +44,7 @@ namespace ZMGUI
 /// %Console window with log history and command line prompt.
 class Console : public Urho3D::Object
 {
-    OBJECT(Console);
+    URHO3D_OBJECT(Console, Urho3D::Object);
 
 public:
     /// Construct.

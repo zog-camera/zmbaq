@@ -49,7 +49,7 @@
 
 #include <Urho3D/DebugNew.h>
 
-DEFINE_APPLICATION_MAIN(ZMGUI::App)
+URHO3D_DEFINE_APPLICATION_MAIN(ZMGUI::App)
 
 #include "jsoncpp/json/reader.h"
 #include "src/zmbaq_common/logservice.h"
@@ -204,13 +204,13 @@ void App::MoveCamera(float timeStep)
 void App::SubscribeToEvents()
 {
     // Subscribe HandleUpdate() function for processing update events
-    SubscribeToEvent(E_UPDATE, HANDLER(App, HandleUpdate));
+    SubscribeToEvent(E_UPDATE, URHO3D_HANDLER(App, HandleUpdate));
 
     // Subscribe to console commands and the frame update
-    SubscribeToEvent(E_CONSOLECOMMAND, HANDLER(App, HandleConsoleCommand));
+    SubscribeToEvent(E_CONSOLECOMMAND, URHO3D_HANDLER(App, HandleConsoleCommand));
 
     // Subscribe key down event
-    SubscribeToEvent(E_KEYDOWN, HANDLER(App, HandleKeyDown));
+    SubscribeToEvent(E_KEYDOWN, URHO3D_HANDLER(App, HandleKeyDown));
 
     // Hide logo to make room for the console
     SetLogoVisible(false);

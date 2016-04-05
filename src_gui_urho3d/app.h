@@ -48,7 +48,7 @@ namespace ZMGUI {
 ///     - Creating rendertarget texture and material programmatically
 class App : public Sample
 {
-    OBJECT(App);
+    URHO3D_OBJECT(App, Sample);
 
 public:
     /// Construct.

@@ -14,7 +14,7 @@ namespace ZMGUI
 class CommandsInterpreter : public Urho3D::Object
 {
 public:
-    OBJECT(ZMGUI::CommandsInterpreter)
+    URHO3D_OBJECT(ZMGUI::CommandsInterpreter, Urho3D::Object)
     CommandsInterpreter(Urho3D::Context* ctx);
     virtual ~CommandsInterpreter();
 

@@ -20,7 +20,7 @@ CommandsInterpreter::~CommandsInterpreter()
 
 void CommandsInterpreter::handleCMD(const Urho3D::String &input)
 {
-    LOGRAW(input);
+    URHO3D_LOGRAW(input);
     if (ZConstString(input.CString(), input.Length()) == ci_quit)
     {
         exit(0);
