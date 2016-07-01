@@ -38,12 +38,13 @@ struct SurvlObjectID
 {
     SurvlObjectID()
     {
+        ZUnsafeBuf zb(mem_accessor()); 
         survlobj_id = 0xffffffff;
     }
     ClientID  client_id;
     u_int32_t survlobj_id;
 
-    ZUnsafeBuf mem_accessor() const {return ZUnsafeBuf((char*)this, sizeof(*this));}
+    ZUnsafeBuf&& mem_accessor() const {return ZUnsafeBuf((char*)this, sizeof(*this));}
 };
 bool operator < (const ZMB::SurvlObjectID& one, const ZMB::SurvlObjectID& two);
 
@@ -55,12 +56,13 @@ struct VideoEntityID
     SurvlObjectID suo_id;
     u_int32_t id;
 
-    ZUnsafeBuf mem_accessor() const {return ZUnsafeBuf((char*)this, sizeof(*this));}
+    ZUnsafeBuf&& mem_accessor() const {return ZUnsafeBuf((char*)this, sizeof(*this));}
 
     /** Print fields in hex numbers grouped by 4bytes.
-         * @param str: must have length >= sizeof(*this) * 2.25f;
-         *  the length value str->len will be modified.
-         * @return end of the string(next element aftert he last one). */
+     * @param str: must have length >= sizeof(*this) * 2.25f;
+     *  the length value str->len will be modified.
+     *
+     * @return end of the string(next element after he last one). */
     char* make_entity_id(ZUnsafeBuf* str) const;
 
     /** Read values from hex format of type: 0xaabbccdd (represents u_int32_t)*/

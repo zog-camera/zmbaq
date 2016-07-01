@@ -202,7 +202,6 @@ public:
 
     SHP(MByteArray) read()
     {
-        std::lock_guard<std::mutex> lk(mut);
 //        bool ct_do_start = false;
 //        if (nullptr != chan_timer && chan_timer->isActive())
 //        {
@@ -238,17 +237,12 @@ public:
     SHP(MByteArray) chunk;
 
 
-    Chan<SHP(MByteArray)> datachan;
-//    SHP(QTimer) chan_timer;
-
 
     GenericStreamReader* daddy;
     SP_TYPE sock_type;
     /** Server or unix socket name descripter*/
     std::string server;
     u_int16_t port;
-
-    std::mutex mut;
 };
 
 
@@ -290,14 +284,8 @@ bool GenericStreamReader::is_configured() const
     return pv->sock_type != GSRPriv::SP_NONE;
 }
 
-std::mutex& GenericStreamReader::mutex() const
-{
-    return pv->mut;
-}
-
 bool GenericStreamReader::configure(const Json::Value& config)
 {
-    std::lock_guard<std::mutex> lk(pv->mut);
     bool ok = pv->jparse(config);
     if (!ok)
     {
@@ -309,37 +297,6 @@ bool GenericStreamReader::configure(const Json::Value& config)
 void GenericStreamReader::propagate_error(std::shared_ptr<MByteArray> msg)
 {
    if (0 != sig_error) sig_error(msg);
-}
-
-
-//Chan<SHP(MByteArray)> GenericStreamReader::start_channel(int period_msec)
-//{
-//    pv->datachan.reopen();
-//    pv->chan_timer = ObjectsWatchdog::instance()->make_timer(true, period_msec);
-//    connect(pv->chan_timer.get(), &QTimer::timeout,
-//            this, &GenericStreamReader::read_if_available,
-//            Qt::QueuedConnection);
-//}
-
-//void GenericStreamReader::stop_channel()
-//{
-//    OW_RECYCLE(pv->chan_timer);
-//    std::move(pv->chan_timer);
-//    pv->datachan.close();
-//}
-
-void GenericStreamReader::read_if_available()
-{
-    auto mb = pv->read();
-    if (!mb->empty())
-    {
-        pv->datachan << mb;
-    }
-}
-
-Chan<SHP(MByteArray)> GenericStreamReader::get_channel() const
-{
-   return pv->datachan;
 }
 
 }//namespace ZMBCommon

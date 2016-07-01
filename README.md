@@ -5,6 +5,9 @@ It's under development and needs the goals of the project to be documented inste
 It pretends to be soon an open source video surveillance system -- a server for incoming video streams,
 GUI client for PC and R.Pi, R.Pi h264 video streamer.
 
+Database design in progress, not finished yet.
+![ZMBAQ prototype of DB scheme](https://github.com/zog-camera/zmbaq/blob/master/docs/db.png)
+
 Internal implementation of the software may be denoted as the following scheme
  (it's not electrical scheme, just using that symbols for some processes like data copying, logic, some processing)
 ![ZMBAQ internals scheme](https://github.com/zog-camera/zmbaq/blob/master/docs/zmbaq_internal.png)
@@ -29,7 +32,7 @@ Authors: Alexander Sorvilov, Bogdan Maslowsky.
 + Poco
 + OpenCV
 + libjsoncpp-dev
-+ leveldb
++ PostgreSQL 
 + Urho3D game engine for the GUI
 
 ## Preconditions
@@ -120,7 +123,7 @@ Should be deployed in "broot" directory, for example: "C:\Users\Max\broot"
 > make -j2 && make install
 
 ### Install LevelDB library
-> sudo aptitude install libleveldv-dev
+> sudo aptitude install  postgresql libpqxx-dev
 
 
 ### Compile the project:

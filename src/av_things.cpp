@@ -247,14 +247,10 @@ int av_things::open(const ZConstString& url)
     if(err != 0)
     {
         auto e = averror_to_string(err);
-        ZMBCommon::MByteArray error_m;
-        error_m.reserve(256);
-        error_m << ZCSTR("Error! Can not find stream info: ")
-        << ZConstString(e.data(), e.size())
-        << ZCSTR("\n requested URL: ")
-        << url;
-
-        *pv << error_m.get_const_str();
+	*pv << ZCSTR("Error! Can not find stream info: ");
+	*pv << ZConstString(e.data(), e.size())
+            << ZCSTR("\n requested URL: ")
+            << url;
         return err;
     }
     else

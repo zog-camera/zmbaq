@@ -98,8 +98,8 @@ Settings::Settings()
     ZConstString home_str((const char*)secure_getenv("HOME"));
     set(ZMB::ZMKW_USER_HOME, home_str);
 
-    char* temp = (char*)alloca(ZMB::max<unsigned>(512u, (unsigned)(4 * home_str.len)));
-    ZUnsafeBuf buf(temp, 512); buf.fill(0);
+    char* temp = (char*)alloca(ZMB::max<unsigned>(1024u, (unsigned)(4 * home_str.len)));
+    ZUnsafeBuf buf(temp, 1024); buf.fill(0);
     buf.read(0, home_str, 0);
     char* origin = buf.begin();
 
@@ -187,65 +187,4 @@ Settings* Settings::instance()
 
 }//namespace ZMB
 
-//----
 
-/*
-extern std::new_handler __new_handler;
-
-void* operator new  ( std::size_t sz)  _GLIBCXX_THROW (std::bad_alloc)
-{
-    void *p = 0x00;
-
-    // malloc (0) is unpredictable; avoid it.
-    if (sz == 0)
-        sz = 1;
-
-    auto alk = CharAllocatorSingleton::instance()->s_allocator();
-    p = alk.allocate(sz);
-    while (p == 0)
-    {
-        std::new_handler handler = CharAllocatorSingleton::instance()->get_new_handler();
-        if (! handler)
-            _GLIBCXX_THROW_OR_ABORT(std::bad_alloc());
-        handler ();
-        p = alk.allocate(sz);
-    }
-
-    return p;
-}
-
-void* operator new[]( std::size_t count )  _GLIBCXX_THROW (std::bad_alloc)
-{
-    return CharAllocatorSingleton::instance()->s_allocator().allocate(count);
-}
-
-void* operator new  ( std::size_t count, const std::nothrow_t& tag)
-{
-    return CharAllocatorSingleton::instance()->s_allocator().allocate(count);
-}
-
-void* operator new[]( std::size_t count, const std::nothrow_t& tag)
-{
-    return CharAllocatorSingleton::instance()->s_allocator().allocate(count);
-}
-
-void operator delete  ( void* ptr ) noexcept
-{
-    CharAllocatorSingleton::instance()->s_allocator().destroy((char*)ptr);
-}
-
-void operator delete  ( void* ptr, const std::nothrow_t& tag) noexcept
-{
-    CharAllocatorSingleton::instance()->s_allocator().destroy((char*)ptr);
-}
-
-void operator delete[]( void* ptr ) noexcept
-{
-    CharAllocatorSingleton::instance()->s_allocator().destroy((char*)ptr);
-}
-
-void operator delete[]( void* ptr, const std::nothrow_t& tag) noexcept
-{
-    CharAllocatorSingleton::instance()->s_allocator().destroy((char*)ptr);
-}
-*/

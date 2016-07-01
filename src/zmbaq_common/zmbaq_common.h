@@ -132,19 +132,5 @@ protected:
 
 }//namespace ZMB
 
-/*
-void* operator new  ( std::size_t sz)  _GLIBCXX_THROW (std::bad_alloc);
-void* operator new[]( std::size_t count )  _GLIBCXX_THROW (std::bad_alloc);
-
-void* operator new  ( std::size_t count, const std::nothrow_t& tag);
-void* operator new[]( std::size_t count, const std::nothrow_t& tag);
-
-void operator delete  ( void* ptr ) noexcept;
-void operator delete[]( void* ptr ) noexcept;
-
-void operator delete  ( void* ptr, const std::nothrow_t& tag) noexcept;
-void operator delete[]( void* ptr, const std::nothrow_t& tag) noexcept;
-*/
-
 #endif // ZMBAQ_COMMON_H
 

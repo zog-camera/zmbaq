@@ -20,10 +20,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef GENERICSTREAMREADER_H
 #define GENERICSTREAMREADER_H
 
-#include <mutex>
 #include "zmbaq_common.h"
 #include "mbytearray.h"
-#include "chan.h"
+#include "chanq/chan.h"
 
 #include "genericstreamwriter.h"
 
@@ -69,19 +68,8 @@ public:
 
     SHP(MByteArray) read() const;
 
-    //Get the mutex, it is locked while read() working.
-    std::mutex& mutex() const;
-
-
     /** Accepts same configuration JSON as constructor.*/
     bool configure(const Json::Value& config);
-
-    /** Start periodic socket polling.*/
-//    Chan<SHP(MByteArray)> start_channel(int period_msec = 4);
-//    void stop_channel();
-
-    //checks if there is data and emits sig_data_read(ptr);
-    void read_if_available();
 
     //emits sig_error(shared_from_this(), msg);
     void propagate_error(std::shared_ptr<MByteArray> msg);

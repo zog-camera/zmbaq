@@ -29,32 +29,30 @@ public:
 
 };
 //----------------------------------------------------------
-RTPPortPair::RTPPortPair(SHP(RTPPortsDispencerPV) dispencer,
-                         const uint16_t& a_even, const uint16_t& a_odd)
-    : even(a_even), odd(a_odd), dsp(dispencer)
+RTPPortPair::RTPPortPair(uint16_t a_even, uint16_t a_odd)
+    : even(a_even), odd(a_odd)
 {
-    memset(tag, 0x00, sizeof(tag));
 }
 
 RTPPortPair::RTPPortPair()
     : even(0), odd(0)
 {
-
+    tag.fill(0);
 }
 //----------------------------------------------------------
 
 /** HashMap<uint16_t(even_port), uint16_t(odd_port)> */
-typedef  LCDS::MapHnd<uint16_t, uint16_t> PortsMap;
+typedef  std::map<uint16_t, uint16_t> PortsMap;
 //------
 /** HashMap<uint16_t(even_port), uint32_t(ref.counter)> */
-typedef  LCDS::MapHnd<uint16_t, u_int32_t> PortsMapRef;
+typedef  std::map<uint16_t, u_int32_t> PortsMapRef;
 //------
 
 /** HashMap<uint64_t(char* tag), SHP(std::vector<uint16_t>) (even_port values list)> */
-class TagsMap : public LCDS::MapHnd<u_int64_t, EvensArrayPtr>
+class TagsMap : public std::map<u_int64_t, EvensArrayPtr>
 {
 public:
-    typedef LCDS::MapHnd<u_int64_t, EvensArrayPtr> base_type;
+    typedef std::map<u_int64_t, EvensArrayPtr> base_type;
 
     TagsMap() : base_type()
     {
@@ -68,7 +66,7 @@ public:
         memcpy(&num, str_8bytes.begin(), ZMB::min<size_t>(sizeof(num), str_8bytes.size())  );
         EvensArrayPtr array;
         auto it = find(num);
-        array = (it.is_end())? it.value() : std::make_shared<EvensArray>();
+        array = (end() == it)? (*it).second : std::make_shared<EvensArray>();
         return array;
     }
 
@@ -79,27 +77,26 @@ public:
         memcpy(&num, str_8bytes.begin(), ZMB::min<size_t>(sizeof(num), str_8bytes.size())  );
         EvensArrayPtr array;
         auto it = find(num);
-        if (!it.is_end())
+        if (end() != it)
         {//case tag already exists:
-            array = it.value();;
+            array = (*it).second;
         }
         else
         {//case need to create tag:
-            emplace(it, num, std::make_shared<EvensArray>());
+	    operator[](num) = std::make_shared<EvensArray>();
         }
         array->push_back(even_port);
     }
     //erase whole tag:
     void erase_tag(const ZConstString& str_8bytes)
     {
-        auto m_guard = mg();
         u_int64_t num = 0;
         memcpy(&num, str_8bytes.begin(), ZMB::min<size_t>(sizeof(num), str_8bytes.size())  );
 
-        auto iter = m_guard.second->map().find(num);
-        if (iter != m_guard.second->map().end())
+        auto iter = find(num);
+        if (end() != iter)
         {
-            m_guard.second->map().erase(iter);
+            erase(iter);
         }
     }
 
@@ -111,10 +108,10 @@ public:
         if (num > 0)
         {
             auto it = find(num);
-            if (it.is_end())
+            if (end() == it)
                 return;
 
-            auto arrayp = it.value();
+            auto arrayp = (*it).second;
             for (auto array_iter = arrayp->begin(); array_iter != arrayp->end(); ++array_iter)
             {
                 if (port == *array_iter)
@@ -153,13 +150,13 @@ public:
     {
         uint16_t even = 0, odd = 0;
         auto iter = m_free.begin();
-        if (!iter.is_end())
+        if (m_free.end() != iter)
         {
-            even = iter.key();
-            odd = iter.value();
+            even = (*iter).first;
+            odd = (*iter).second;
             //same as this->incref(even);
-            m_map_ref.emplace(even, (1u), m_map_ref.m());
-            iter.erase();
+	    m_map_ref[even] = 1u;
+	    m_free.erase(iter);
         }
         else
         {
@@ -171,37 +168,34 @@ public:
         {
             m_tags.tag(tag, even);
         }
-        auto pair = RTPPortPair(shared_from_this(), even, odd);
-        pair.dsp = shared_from_this();
-        return pair;
+        return RTPPortPair(even, odd);
     }
 
     size_t available()
     {
-        return m_free.begin().map_size();
+        return m_free.size();
     }
 
-    void incref(const uint16_t& even)
+    void incref(uint16_t even)
     {
         auto it = m_map_ref.find(even);
-        if (!it.is_end())
+        if (m_map_ref.end() != it)
         {
-            ++it.value();
+            ++(*it);
         }
         else
         {
-            it.prepend(even, 1u);
+	    (*it) = 1u;
         }
 
     }
     //return refcount:
-    int decref(const uint16_t& even)
+    int decref(uint16_t even)
     {
         auto it = m_map_ref.find(even);
-        if (!it.is_end())
+        if (m_map_ref.end() != it)
         {
-            --it.value();
-            assert(it.value() >= 0);
+            --(*it);
             return it.value();
         }
         return 0;
@@ -218,8 +212,6 @@ public:
     }
 
 
-    std::mutex mut;
-
     /** Defaults to 127.0.0.1. Must be changed when needed. */
     std::string d_server_ip;
     TagsMap m_tags;
@@ -231,25 +223,12 @@ private:
 
 };
 
-RTPPortPair::~RTPPortPair()
-{
-    if (nullptr != dsp && valid())
-    {
-        reset();
-    }
-}
-
-ZConstString RTPPortPair::dispensers_ip() const
-{
-   return ZConstString(dsp->d_server_ip.data(), dsp->d_server_ip.size());
-}
 
 void RTPPortPair::reset()
 {
-   dsp->release(*this);
    even = 0;
    odd = 0;
-   memset(tag, 0x00, sizeof(tag));
+   tag.fill(0);
 }
 //--------------------------------------------------------
 
@@ -267,14 +246,12 @@ RTPPortsDispencer::~RTPPortsDispencer()
 
 void RTPPortsDispencer::set_destination_ip(const std::string& addr)
 {
-    std::lock_guard<std::mutex> lk(pv->mut);
     pv->d_server_ip = addr;
 }
 
-ZConstString RTPPortsDispencer::dest_ip() const
+std::string RTPPortsDispencer::dest_ip() const
 {
-    std::lock_guard<std::mutex> lk(pv->mut);
-    return ZConstString(pv->d_server_ip.data(), pv->d_server_ip.size());
+    return pv->d_server_ip;
 }
 
 RTPPortPair RTPPortsDispencer::obtain(ZConstString use_tag)
@@ -306,3 +283,4 @@ EvensArrayPtr RTPPortsDispencer::get_tagged_ports(const ZConstString& tag) const
 {
     return pv->m_tags.get_tagged_ports(tag);
 }
+

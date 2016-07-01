@@ -17,9 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "genericstreamwriter.h"
 #include <iostream>
-#include <mutex>
 
-#include "char_allocator_singleton.h"
 #include "mbytearray.h"
 #include "zmbaq_common.h"
 #include "zmq_ctx_keeper.h"
@@ -66,7 +64,6 @@ public:
 
     int write(const char* data, size_t len)
     {
-        std::lock_guard<std::mutex> lk(mut);
         if (nullptr != data && nullptr != publisher)
         {
             return s_send(publisher, data, len);
@@ -75,7 +72,6 @@ public:
     }
     void close()
     {
-        std::lock_guard<std::mutex> lk(mut);
         zsocket_destroy(keep.czctx(), publisher);
         publisher = nullptr;
     }
@@ -89,7 +85,6 @@ public:
 
     MByteArray m_server;
     u_int16_t m_port;
-    std::mutex mut;
     MByteArray addr;
     zmq_ctx_keeper keep;
     void* publisher;
@@ -265,7 +260,6 @@ public:
         if (!m_is_open)
             return;
 
-        std::lock_guard<std::mutex> lk(mut);
         pfn_write = nullptr;
         switch (sock_type) {
         case SP_UDP:
@@ -297,7 +291,6 @@ public:
     }
 
     bool m_is_open;
-    std::mutex mut;
     int64_t (*pfn_write)(const std::shared_ptr<GSWPriv>& impl, const char* data, size_t len);
 
     SHP(Poco::Net::StreamSocket) tcp_sock;
@@ -388,11 +381,6 @@ GenericStreamWriter::~GenericStreamWriter()
 {
 }
 
-std::mutex& GenericStreamWriter::mutex() const
-{
-   return pv->mut;
-}
-
 int GenericStreamWriter::send_zmsg(zmsg_t** msg)
 {
     if (GSWPriv::SP_ZMG_PUB != pv->sock_type)
@@ -407,7 +395,6 @@ int GenericStreamWriter::send_zmsg(zmsg_t** msg)
         return 0;
     }
 
-    std::lock_guard<std::mutex> lk(pv->mut);
     if (!pv->is_open())
     {
         return -1;
@@ -423,7 +410,6 @@ int GenericStreamWriter::send_zframe(zframe_t** frame_p, int flags)
         return 0;
     }
 
-    std::lock_guard<std::mutex> lk(pv->mut);
     if (!pv->is_open())
     {
         return -1;
@@ -433,7 +419,6 @@ int GenericStreamWriter::send_zframe(zframe_t** frame_p, int flags)
 
 int64_t GenericStreamWriter::write(const char* data, size_t len)
 {
-    std::lock_guard<std::mutex> lk(pv->mut);
     if (!pv->is_open())
     {
         return -1;
@@ -473,7 +458,6 @@ bool GenericStreamWriter::is_configured() const
 
 bool GenericStreamWriter::configure(const Json::Value& config)
 {
-    std::lock_guard<std::mutex> lk(pv->mut);
     bool ok = false;
     try {
         ok = pv->open_by_json(config);

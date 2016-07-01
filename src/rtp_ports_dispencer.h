@@ -24,6 +24,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <cstdint>
 #include <string>
 #include <deque>
+#include <array>
 
 class RTPPortsDispencer;
 class RTPPortsDispencerPV;
@@ -40,7 +41,6 @@ public:
 
     RTPPortPair(SHP(RTPPortsDispencerPV) dispencer,
                 const uint16_t& a_even, const uint16_t& a_odd);
-    virtual ~RTPPortPair();
 
     //release the port number, it will be returned to dispencer
     void reset();
@@ -51,15 +51,10 @@ public:
     //A tag may be set to show what this ports are used for
     //the tag has this 8-bytes limitation for optimal comparison operations
     //(re-interpreted as 64-bit interger)
-    char tag[8];
+    std::array<char,8> tag;
 
     //may be invalid in rare case(when no more ports available):w
     bool valid() const {return 0 < (even & odd );}
-
-    //get port dispencer's IP field
-    ZConstString dispensers_ip() const;
-
-    SHP(RTPPortsDispencerPV) dsp;
 };
 //---------------------------------------------------
 
@@ -85,7 +80,7 @@ public:
     void set_destination_ip(const std::string& addr);
 
     //get current IP field
-    ZConstString dest_ip() const;
+    std::string dest_ip() const;
 
     //register already obtained port(elsewhere)
     void bind(const RTPPortPair& item);

@@ -87,10 +87,6 @@ ZUnsafeBuf::ZUnsafeBuf(char* b, char* e)
 
 ZUnsafeBuf::~ZUnsafeBuf()
 {
-    if (nullptr != cb_destructor)
-    {
-        cb_destructor(this);
-    }
 }
 
 ZConstString ZUnsafeBuf::to_const() const

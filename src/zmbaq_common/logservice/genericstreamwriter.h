@@ -21,7 +21,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define GENERICSTREAMWRITER_H
 
 #include "jsoncpp/json/json.h"
-#include <mutex>
 #include <memory>
 #include "zmq_ctx_keeper.h"
 
@@ -106,9 +105,6 @@ public:
     bool configure(const Json::Value& config);
 
     bool is_configured() const;
-
-    //Get the mutex, it is locked while write() working.
-    std::mutex& mutex() const;
 
     // close socket
     void close();

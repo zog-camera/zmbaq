@@ -127,7 +127,7 @@ public:
      * @return false if stream not created. */
     bool push_data(const u_int8_t* data, glm::ivec2 data_size, int /*AVPixelFormat*/ data_format);
 
-    /** Encoder H264 and amke RTP dispatch*/
+    /** Encode H264 and make RTP dispatch to destination*/
     bool send_data();
 
     /** Check whether it's able to work.

@@ -140,7 +140,6 @@ struct ZUnsafeBuf
     size_t len;
 
     void* sidedata;//for use with care
-    void (*cb_destructor)(ZUnsafeBuf* buf); //for use with sidedata
 
 };
 
