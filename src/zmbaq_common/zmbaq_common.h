@@ -21,9 +21,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define ZMBAQ_COMMON_H
 
 #include <memory>
-#include <tbb/tbb_allocator.h>
 #include <new>
 #include <cassert>
+#include <mutex>
+
 #include "zmb_str.h"
 #include "mbytearray.h"
 

@@ -22,7 +22,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <vector>
 #include <string>
 #include <memory>
-#include "char_allocator_singleton.h"
 #ifdef WITH_QT5
 #include <QByteArray>
 #include <QLatin1String>
@@ -37,10 +36,10 @@ namespace ZMBCommon {
 
 class MByteArrayList;
 
-class MByteArray : public std::basic_string<char, std::char_traits<char>, tbb::cache_aligned_allocator<char>>
+class MByteArray : public std::basic_string<char>
 {
 public:
-    typedef std::basic_string<char, std::char_traits<char>, tbb::cache_aligned_allocator<char>> base_type;
+    typedef std::basic_string<char> base_type;
     MByteArray();
 
     MByteArray(const char* str);
@@ -121,10 +120,10 @@ QLatin1String make_qlatin1_depend(const MByteArray& arr);
 #endif
 
 
-class MByteArrayList : public std::deque<MByteArray, tbb::cache_aligned_allocator<char>>
+class MByteArrayList : public std::deque<MByteArray>
 {
 public:
-    typedef std::deque<MByteArray, tbb::cache_aligned_allocator<char>> base_type;
+    typedef std::deque<MByteArray> base_type;
     explicit MByteArrayList();
 
     MByteArrayList& operator<<(const char* str);

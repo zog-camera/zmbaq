@@ -19,18 +19,16 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #include <assert.h>
 #include <arpa/inet.h>
 #include <cstring>
-#include "jsoncpp/json/writer.h"
+#include "json/writer.h"
 
 namespace ZMBCommon {
 
-MByteArray::MByteArray()
-    : base_type  (CharAllocatorSingleton::instance()->c_allocator())
+MByteArray::MByteArray() : base_type  ()
 {
 
 }
 
-MByteArray::MByteArray(const std::string& str)
-    : base_type  (CharAllocatorSingleton::instance()->c_allocator())
+MByteArray::MByteArray(const std::string& str) : base_type  ()
 {
     if (!str.empty())
     {
@@ -39,8 +37,7 @@ MByteArray::MByteArray(const std::string& str)
     }
 }
 
-MByteArray::MByteArray(const ZConstString& zstr)
-    : base_type  (CharAllocatorSingleton::instance()->c_allocator())
+MByteArray::MByteArray(const ZConstString& zstr) : base_type  ()
 {
     if (zstr.size() == 0)
         return;
@@ -49,8 +46,7 @@ MByteArray::MByteArray(const ZConstString& zstr)
     memcpy(unsafe(), zstr.begin(), zstr.size());
 }
 
-MByteArray::MByteArray(const char* str)
-    : base_type (str, CharAllocatorSingleton::instance()->c_allocator())
+MByteArray::MByteArray(const char* str) : base_type ()
 {
 }
 #ifdef WITH_QT5
@@ -66,16 +62,16 @@ MByteArray::MByteArray(const QByteArray& bytes)
 
 
 MByteArray::MByteArray(const char* str, base_type::size_type pos, base_type::size_type count)
-    : base_type (str, pos, count, CharAllocatorSingleton::instance()->c_allocator())
+    : base_type (str, pos, count)
 {
 }
 
-MByteArray::MByteArray(const MByteArray& bytes) : base_type (CharAllocatorSingleton::instance()->c_allocator())
+MByteArray::MByteArray(const MByteArray& bytes) : base_type ()
 {
     if (bytes.size() > 0)
     {
-        resize(bytes.size());
-        memcpy(unsafe(), bytes.data(), size());
+        this->resize(bytes.size());
+        ::memcpy(unsafe(), bytes.data(), size());
     }
 }
 
@@ -255,7 +251,7 @@ MByteArray MByteArray::substr(size_type pos, size_type n) const
 
 std::shared_ptr<MByteArray> MByteArray::substr_ptr(size_type pos, size_type n) const
 {
-    auto res = make_mbytearray();
+    auto res = std::make_shared<MByteArray>();
 
     if (0 == n || pos >= size())
         return res;
@@ -296,8 +292,7 @@ MByteArray& MByteArray::operator << (const ZConstString& other)
     return *this;
 }
 
-MByteArrayList::MByteArrayList() :
-    base_type(CharAllocatorSingleton::instance()->c_allocator())
+MByteArrayList::MByteArrayList() : base_type()
 {
 
 }

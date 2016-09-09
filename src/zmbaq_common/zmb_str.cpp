@@ -20,6 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #include <assert.h>
 #include <arpa/inet.h>
 
+namespace ZMBCommon {
+
 //=========================================
 ZConstString::ZConstString(const ZConstString& key, const Json::Value* jobject)
     : ZConstString((const char*)0, (const char*)0)
@@ -68,19 +70,19 @@ bool ZConstString::has_prefix(const ZConstString& prefix_str) const
 
 //=========================================
 
-ZUnsafeBuf::ZUnsafeBuf() : str(0), len(0), sidedata(0), cb_destructor(0)
+ZUnsafeBuf::ZUnsafeBuf() : str(0), len(0), sidedata(0)
 { }
 
 ZUnsafeBuf::ZUnsafeBuf(char* a_str)
-    : str(a_str), len(strlen(a_str)), sidedata(0), cb_destructor(0)
+    : str(a_str), len(strlen(a_str)), sidedata(0)
 { }
 
 ZUnsafeBuf::ZUnsafeBuf(char* a_str, size_t a_len)
-    : str(a_str), len(a_len), sidedata(0), cb_destructor(0)
+    : str(a_str), len(a_len), sidedata(0)
 { }
 
 ZUnsafeBuf::ZUnsafeBuf(char* b, char* e)
-    : str(b), len(e - b), sidedata(0), cb_destructor(0)
+    : str(b), len(e - b), sidedata(0)
 {
    assert(b < e);
 }
@@ -279,8 +281,9 @@ bool ZUnsafeBuf::ntohs_self(u_int16_t* begin_ptr, u_int16_t* end_ptr)
 
 void ZUnsafeBuf::fill(int val) {if (size() > 0) memset(begin(), val, size());}
 
-
-bool operator == (const ZConstString& first, const ZConstString& second)
+}//namespace ZMBCommon
+///----------------------------------------------------------------------------
+bool operator == (const ZMBCommon::ZConstString& first, const ZMBCommon::ZConstString& second)
 {
     if (first.begin() == second.begin() && first.size() == first.size())
         return true;
@@ -291,9 +294,9 @@ bool operator == (const ZConstString& first, const ZConstString& second)
     return 0 < first.size() && 0 == memcmp(first.begin(), second.begin(), first.size());
 }
 
-bool operator != (const ZConstString& first, const ZConstString& second)
+bool operator != (const ZMBCommon::ZConstString& first, const ZMBCommon::ZConstString& second)
 {
     return !(first == second);
 }
-
+///----------------------------------------------------------------------------
 

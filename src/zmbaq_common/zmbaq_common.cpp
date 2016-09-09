@@ -17,11 +17,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "zmbaq_common.h"
 
-#include <tbb/scalable_allocator.h>
-#include "char_allocator_singleton.h"
 #include <cstdlib>
 #include <assert.h>
-#include "jsoncpp/json/value.h"
+#include "json/value.h"
 
 
 //----

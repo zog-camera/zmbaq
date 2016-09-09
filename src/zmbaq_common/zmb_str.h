@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef ZMB_STR_H
 #define ZMB_STR_H
 
-#include "jsoncpp/json/value.h"
+#include "json/value.h"
 #include <exception>
 
 #ifndef ZM_DEF_STATIC_CONST_STRING
@@ -30,6 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
     #define ZCSTR(CONST_STRING) ZConstString((CONST_STRING), sizeof(CONST_STRING) - 1, ZConstString::Type::STATIC_CONST)
 
 #endif //ZM_DEF_STATIC_CONST_STRING
+
+namespace ZMBCommon {
 
 
 //----
@@ -51,12 +53,12 @@ struct ZConstString
      * @return if the string is a key of JSON. */
     bool is_key_of(const Json::Value* jobject, const Json::Value** p_jvalue = nullptr) const;
 
-    const char* last() const {return str + len - 1;}
-    const char* begin() const {return str;}
+    inline const char* last() const {return str + len - 1;}
+    inline const char* begin() const {return str;}
     //next element after the last one (0-char usually)
-    const char* end() const {return str + len;}
-    size_t size() const {return len;}
-    bool empty() const {return len == 0;}
+    inline const char* end() const {return str + len;}
+    inline size_t size() const {return len;}
+    inline bool empty() const {return len == 0;}
 
     bool has_prefix(const ZConstString& prefix_str) const;
 
@@ -84,14 +86,14 @@ struct ZUnsafeBuf
 
     ZConstString to_const() const;
 
-    char* last() const {return str + len - 1;}
-    char* begin() const {return str;}
+    inline char* last() const {return str + len - 1;}
+    inline char* begin() const {return str;}
     //next element after the last one (0-char usually)
-    char* end() const {return str + len;}
+    inline char* end() const {return str + len;}
 
-    const char* cbegin() const {return (const char*)begin();}
-    const char* cend() const {return (const char*)end();}
-    size_t size() const {return len;}
+    inline const char* cbegin() const {return (const char*)begin();}
+    inline const char* cend() const {return (const char*)end();}
+    inline size_t size() const {return len;}
 
     void fill(int val);
 
@@ -143,8 +145,10 @@ struct ZUnsafeBuf
 
 };
 
-bool operator == (const ZConstString& first, const ZConstString& second);
-bool operator != (const ZConstString& first, const ZConstString& second);
-
+}//namespace ZMBCommon
+///----------------------------------------------------------------------------
+bool operator == (const ZMBCommon::ZConstString& first, const ZMBCommon::ZConstString& second);
+bool operator != (const ZMBCommon::ZConstString& first, const ZMBCommon::ZConstString& second);
+///----------------------------------------------------------------------------
 
 #endif // ZMB_STR_H

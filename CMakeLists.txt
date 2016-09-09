@@ -86,7 +86,7 @@ file(GLOB com_src src/zmbaq_common/*.cpp src/zmbaq_common/*.h )
 
 add_library(zmbaq_common STATIC ${com_src})
 target_link_libraries(zmbaq_common ${ASAN_LINK_FLAGS} ${PROF_LINK_FLAGS}
--lzip -pthread -ltbb -ltbbmalloc ${JSON_LIB}
+-lzip -pthread  ${JSON_LIB}
  -lzmq -lczmq
  -lPocoNet -lPocoNetSSL -lPocoFoundation
 # -lboost_system
@@ -108,7 +108,6 @@ target_link_libraries(zmbaq
  ${ASAN_LINK_FLAGS}
 ${PROF_LINK_FLAGS}
 #${CV_LIBS} ${JPEG_LIB}
- -ltbb -ltbbmalloc
 #-lv4l2
 -lavcodec -lavformat -lavutil -lswscale -pthread -lzip  -lx264
 # -lmp4v2
@@ -137,6 +136,7 @@ target_link_libraries(rtsp_dumper videoentity -lPocoFoundation)
 if (WITH_GUI)
   find_library(u3dlib NAMES Urho3D
       PATHS
+      ${URHO3D_DIR}/lib/Urho3D       ${URHO3D_DIR}/lib64/Urho3D
       ${URHO3D_DIR}/lib64 ${URHO3D_DIR}/lib64/Urho3D/
       ${FFMPEG_DIR}/lib)
   message("u3d lib: ${u3dlib} dir: ${URHO3D_DIR}")
@@ -144,7 +144,7 @@ if (WITH_GUI)
   file(GLOB_RECURSE files_gui src_gui_urho3d/*.cpp src_gui_urho3d/*.h)
   add_executable(zmbaq_gui ${files_gui} ${RC_OUT})
   target_link_libraries(zmbaq_gui ${ASAN_LINK_FLAGS} ${PROF_LINK_FLAGS}
-   -ltbb -ltbbmalloc ${u3dlib} -ldl -lGL -lGLEW
+   ${u3dlib} -ldl -lGL -lGLEW
    videoentity
   )
 
