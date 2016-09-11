@@ -25,23 +25,26 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "mbytearray.h"
 #include "jsoncpp/json/json.h"
 #include <Poco/Net/IPAddress.h>
+#include "Poco/Channel.h"
 
 //class QCamSurface;
 //class SurvFrame;
-class ffmpeg_rtp_encoder;
-namespace ZMB {
-    class FFileWriterBase;
-}
-
 struct AVFormatContext;
 struct AVPacket;
 
+
+namespace ZMB {
+
+using namespace ZMBCommon;
+
+class FFileWriterBase;
+class ffmpeg_rtp_encoder;
 
 class ffmediastream
 {
 public:
     /** The caller must set these up manually.*/
-    std::function<void(ffmediastream*, ZMBCommon::MByteArrayPtr)> cb_failed;
+    std::function<void(ffmediastream*, const std::string&)> cb_failed;
 
     /** Triggered on first input pkt/frame, when the stream is actually starting.*/
     std::function<void(ffmediastream*, SHP(Json::Value))> cb_stream_created;
@@ -49,12 +52,12 @@ public:
     /** Triggered when file write has stopped: * on stop_file(); */
     std::function<void(ffmediastream*, SHP(ZMB::FFileWriterBase) fptr)> cb_file_written;
 
-    ffmediastream();
+    explicit ffmediastream(Poco::Channel* logChannel = nullptr);
 
     /** Creates a capture/restream entity for incoming already encoded RTP traffic.*/
-    ffmediastream(const AVFormatContext* src_context,
-                  const Poco::Net::IPAddress& remote_addr,
-                  u_int16_t udp_port);
+    explicit ffmediastream(const AVFormatContext* src_context,
+                           const Poco::Net::IPAddress& remote_addr,
+                           u_int16_t udp_port, Poco::Channel* logChannel = nullptr);
 
     virtual ~ffmediastream();
 
@@ -91,9 +94,6 @@ public:
     void block_stream();
     void unblock_stream();
 
-//    void on_surface_frame_available(SHP(QImage) frame);
-//    void on_frame_available(SHP(SurvFrame) frame);
-
 
 private:
 
@@ -101,12 +101,16 @@ private:
     u_int16_t d_port;
     std::shared_ptr<ffmpeg_rtp_encoder> pv;
     ZMBCommon::MByteArray d_server_ip;
-    char d_str_port[6];
+
+    std::array<char, 6> d_str_port;
     bool d_block;
 
     //copied from result of start_file(fname);
     SHP(ZMB::FFileWriterBase) p_file;
+
+    Poco::Channel* logChannel;
 };
 
+}//namespace ZMB
 
 #endif // FFMEDIASTREAM_H

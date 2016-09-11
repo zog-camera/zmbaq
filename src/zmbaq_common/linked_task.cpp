@@ -36,7 +36,7 @@ static void DeleteCall(LinkedTask* item, void* data)
       delete item;
       return;
     }
-  root->deleteNode(root, item);
+  root->utilPtr->deleteNode(root, item);
 }
 
 // Free memory recursively.
@@ -60,7 +60,7 @@ LinkedTask* FuncNeu(LinkedTask* RootNodePtr)
 void FuncDeleteNode(LinkedTask* RootNodePtr, LinkedTask* node_ptr)
 {
     delete node_ptr;
-    RootNodePtr->utilPtr.fetch_sub(1);
+    RootNodePtr->utilPtr->counter.fetch_sub(1);
 }
 //---------------------------------------------------------------
 LinkedTask::LinkedTask() : level(0)
@@ -103,7 +103,7 @@ void LinkedTask::shallowCopy(const LinkedTask& other)
   level = other.level;
   root.store(other.root.load());
   parent.store(other.parent.load());
-  counter = other.counter;
+  utilPtr = other.utilPtr;
 }
 
 LinkedTask* LinkedTask::getLastOnLevel()
@@ -139,7 +139,7 @@ size_t LinkedTask::spawnNextNodes(size_t nodesCount)
     LinkedTask* item = nullptr;
     for(; c < nodesCount; ++c, last_item = item)
       {
-        item = root->makeNewNode(root);
+        item = root->utilPtr->makeNewNode(root);
         StoreAcquire(last_item->next, item);
         if (nullptr == item)
           break;
@@ -161,7 +161,7 @@ LinkedTask* LinkedTask::spawnChildNode(LinkedTask*& expelledChild)
   LinkedTask* rootNode = ItemLoadAcquire(this->root);
   expelledChild = ItemLoadAcquire(child);
   try {
-    auto item = rootNode->makeNewNode(rootNode);
+    auto item = rootNode->utilPtr->makeNewNode(rootNode);
     if(nullptr == item)
       return nullptr;
     StoreAcquire(child, item);
@@ -277,25 +277,25 @@ std::string MakeFullPath(ZMBCommon::ZConstString uri,
 {
   size_t upos = ZMBCommon::FindURLAddressBegin(uri.begin(), uri.size());
   std::string path;
-  if('/' != url[0] && len <= upos) {
+  if('/' != uri.begin()[0] && uri.size() <= upos) {
       //case it's a subdirectory without leading '/'
-      path.reserve(siteAddress.size() + 2 + len);
+      path.reserve(siteAddress.size() + 2 + uri.size());
       path = siteAddress.begin();
       path += '/';
     }
   else if (0 == upos)
     {//case starts with '/': "/some/path"
       path.reserve(4 + scheme.size()
-                   + host_and_port.size() + len);
-      path = scheme.data(); //"http" or "https"
+                   + host_and_port.size() + uri.size());
+      path = scheme.begin(); //"http" or "https"
       path += "://";
       // append site.com:443
-      path += host_and_port;
+      path += host_and_port.begin();
     }
   // append local resource URI
   size_t appendPos = path.size();
-  path.resize(path.size() + len);
-  ::memcpy(&path[appendPos], url, len);
+  path.resize(path.size() + uri.size());
+  ::memcpy(&path[appendPos], uri.begin(), uri.size());
   return path;
 }
 //-----------------------------------------------------------------

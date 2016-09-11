@@ -27,6 +27,7 @@ extern "C" {
 #include <string.h>
 #include <libavutil/rational.h>
 }
+#include "Poco/Channel.h"
 #include <functional>
 #include "zmbaq_common.h"
 #include "timingutils.h"
@@ -34,6 +35,7 @@ extern "C" {
 #include "jsoncpp/json/json.h"
 #include "glm/vec2.hpp"
 
+#include "../packetspocket.h"
 
 struct AVFrame;
 struct SwsContext;
@@ -47,68 +49,34 @@ struct AVPacket;
 struct AVCodecContext;
 struct AVDictionary;
 
-namespace ZMB {
-    class FFileWriterBase;
-}
-
 namespace av {
  class Packet;
 }
+
+namespace ZMB {
+
+using namespace ZMBCommon;
+
+class FFileWriterBase;
 
 class ffmpeg_rtp_encoder;
 
 void  log_packet(AVRational* time_base, const AVPacket *pkt);
 
-class PacketsPocket
-{
-public:
-
-    /** pair(Time in seconds, pts in time_base) */
-    struct seq_key_t : public std::pair<double, int64_t>
-    {
-    public:
-        seq_key_t() {first = 0.0; second = 0u;}
-        seq_key_t(const double& s, const int64_t& pts) {first = (s); second = (pts); }
-        const double& seconds() const {return first;}
-        const int64_t& pts() const {return second;}
-    };
-
-    typedef std::pair<seq_key_t, SHP(av::Packet)> marked_pkt_t;
-    typedef std::deque<marked_pkt_t, tbb::cache_aligned_allocator<marked_pkt_t>> packet_list_t;
-    typedef std::pair<seq_key_t, packet_list_t> seq_item_t;
-
-    PacketsPocket();
-    ~PacketsPocket();
-
-    void push(AVPacket* pkt, SHP(ZMB::FFileWriterBase) pfile, const AVRational& time_base);
-    void dump_packets(seq_key_t& key, SHP(ZMB::FFileWriterBase)& pfile);
-
-    /** Frame sequences map. First frame in each sequence is a keyframe.*/
-    std::deque<seq_item_t, tbb::cache_aligned_allocator<seq_item_t>> seq;
-
-    /** Reset for each new file:*/
-    TimingUtils::LapTimer laptime;
-    int64_t prev_pts;
-    char msg[256];
-
-    seq_key_t last_dump_head_mark;
-    seq_key_t last_dump_tail_mark;
-
-};
 
 /** Encoder AND/OR H264/RTP transmitter.*/
 class ffmpeg_rtp_encoder
 {
 public:
     void* sidedata; //< set and/or managed externally
-    std::function<void(const ffmpeg_rtp_encoder*, ZMBCommon::MByteArrayPtr)> cb_failed;
+    std::function<void(const ffmpeg_rtp_encoder*, const std::string&)> cb_failed;
     std::function<void(const ffmpeg_rtp_encoder*, SHP(Json::Value) rtp_settings)> cb_stream_created;
 
 
-    explicit ffmpeg_rtp_encoder();
+    explicit ffmpeg_rtp_encoder(Poco::Channel* logChan = nullptr);
     virtual ~ffmpeg_rtp_encoder();
 
-    ZMBCommon::MByteArray get_sprop_parameters(glm::ivec2 encoded_frame_size);
+    static std::string get_sprop_parameters(glm::ivec2 encoded_frame_size);
 
     static glm::ivec2 default_enc_frame_size();
 
@@ -141,7 +109,7 @@ public:
 
     //generate this->sprop_parameters
     SHP(Json::Value) make_rtp_settings();
-    ZMBCommon::MByteArrayPtr make_rtp_settings_str(const Json::Value& jo);
+    std::string make_rtp_settings_str(const Json::Value& jo);
 
     SHP(ZMB::FFileWriterBase) cur_file() const;
 
@@ -152,6 +120,7 @@ public:
 
 private:
 
+    Poco::Channel* logChan;
     SHP(ZMB::FFileWriterBase) p_file_writer;
 
     /** Dimensions of the encoded video frame*/
@@ -205,5 +174,7 @@ private:
     void set_vcodec_defaults(AVCodecContext* c, AVStream* st, glm::ivec2 encod_size) const;
 
 };
+
+}//namespace ZMB
 
 #endif // FFMPEG_RTP_ENCODER_H

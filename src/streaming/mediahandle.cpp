@@ -15,13 +15,16 @@ You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 
+#include "Poco/Message.h"
 #include "mediahandle.h"
 
 #include "ffmediastream.h"
 #include "ffmpeg_rtp_encoder.h"
-#include "logservice.h"
 #include "../ffilewriter.h"
 #include "../fshelper.h"
+
+
+namespace ZMB {
 
 
 //-----------------------------------------------------
@@ -29,14 +32,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 //-----------------------------------------------------
 //#include "../survffmpegcam.h"
 
-MediaHandle::MediaHandle ()
+MediaHandle::MediaHandle (Poco::Channel* logChan)
 {
-   sidedata = 0;
+  this->logChan = logChan;
+  sidedata = 0;
 }
-//MediaHandle::MediaHandle (SurvFfmpegCam* master)
-//{
-//    p_master = master;
-//}
 
 MediaHandle::~MediaHandle ()
 {
@@ -60,7 +60,6 @@ u_int16_t MediaHandle::port_num() const
 
 void MediaHandle::destruct()
 {
-//    p_master->unbind_handle(this);
     if (NULL != media_stream)
     {
         media_stream->block_stream();
@@ -82,33 +81,25 @@ void MediaHandle::bind_callbacks(SHP(ffmediastream) ffstream, bool direct_connec
         sig_file_written(shared_from_this(), file);
     };
 
-    media_stream->cb_failed = [&](ffmediastream* ff, ZMBCommon::MByteArrayPtr msg) mutable
+    media_stream->cb_failed = [&](ffmediastream* ff, const std::string& msg) mutable
     {
-        LERROR(ZCSTR("MediaHandle"), msg);
-        destruct();
+      destruct();
+      if (nullptr == logChan)
+        {
+          return;
+        }
+      Poco::Message _msg;
+      _msg.setSource(__FUNCTION__);
+      _msg.setText(msg);
+      logChan->log(_msg);
     };
 }
-
-//void MediaHandle::construct(SHP(SurvFfmpegCam) cam, const QHostAddress& remote_addr,
-//                            u_int16_t udp_port, bool direct_connection)
-//{
-//    ADEBUG(ZCSTR(__PRETTY_FUNCTION__));
-//    media_stream = std::make_shared<ffmediastream>();
-//    bind_callbacks(media_stream, direct_connection);
-//    ZMBCommon::MByteArray addr(remote_addr.toString());
-//    media_stream->stream_to_remote(addr.get_const_str(), udp_port);
-//    Qt::ConnectionType ctype = direct_connection? Qt::DirectConnection : Qt::QueuedConnection;
-
-//    QObject::connect(cam.get(), &SurvFfmpegCam::sig_got_frame,
-//                     this, &MediaHandle::on_frame_available, ctype);
-//}
 
 void MediaHandle::construct(const AVFormatContext* src_context,
                             const Poco::Net::IPAddress& remote_addr,
                             u_int16_t udp_port, bool direct_connection)
 {
-    ADEBUG(ZCSTR(__PRETTY_FUNCTION__));
-    media_stream = std::make_shared<ffmediastream>(src_context, remote_addr, udp_port);
+    media_stream = std::make_shared<ffmediastream>(src_context, remote_addr, udp_port, logChan);
     bind_callbacks(media_stream, direct_connection);
     ZMBCommon::MByteArray addr(remote_addr.toString());
     media_stream->stream_to_remote(addr.get_const_str(), udp_port);
@@ -153,7 +144,6 @@ void MediaHandle::unblock_media_stream()
 SHP(ZMB::FFileWriterBase) MediaHandle::write_file(SHP(ZMFS::FSItem) file)
 {
     assert(nullptr != file);
-    ADEBUG(ZCSTR(__PRETTY_FUNCTION__));
     if (nullptr != media_stream)
     {
         std::string dest;
@@ -165,7 +155,6 @@ SHP(ZMB::FFileWriterBase) MediaHandle::write_file(SHP(ZMFS::FSItem) file)
     }
     else
     {
-        AERROR(ZCSTR(__PRETTY_FUNCTION__));
         //return empty writer:
         return std::make_shared<ZMB::FFileWriterBase>();
     }
@@ -173,7 +162,6 @@ SHP(ZMB::FFileWriterBase) MediaHandle::write_file(SHP(ZMFS::FSItem) file)
 
 SHP(ZMB::FFileWriterBase) MediaHandle::stop_file()
 {
-    ADEBUG(ZCSTR(__PRETTY_FUNCTION__));
     if (nullptr != media_stream)
     {
         auto fw = media_stream->stop_file();
@@ -183,24 +171,21 @@ SHP(ZMB::FFileWriterBase) MediaHandle::stop_file()
     return std::shared_ptr<ZMB::FFileWriterBase>(nullptr);
 }
 
-//void MediaHandle::on_surface_frame_available(SHP(QImage) frame)
-//{
-//   media_stream->on_surface_frame_available(frame);
-//}
-
-//void MediaHandle::on_frame_available(SHP(SurvFrame) frame)
-//{
-//   media_stream->on_frame_available(frame);
-//}
-
-void MediaHandle::on_file_writer_error(std::shared_ptr<ZMB::FFileWriterBase> fptr,
-                                       const ZMBCommon::MByteArray& msg)
+void MediaHandle::on_file_writer_error(std::shared_ptr<ZMB::FFileWriterBase> fptr, const std::string& msg)
 {
-//    Q_UNUSED(fptr);
-    AERROR(msg);
+  if (nullptr == logChan)
+    {
+      return;
+    }
+  Poco::Message _msg;
+  _msg.setSource(__FUNCTION__);
+  _msg.setText(msg);
+  logChan->log(_msg);
 }
 
 const Json::Value& MediaHandle::get_sdp() const
 {
    return sdp;
 }
+
+}//namespace ZMB

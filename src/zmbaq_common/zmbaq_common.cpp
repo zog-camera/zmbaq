@@ -65,120 +65,98 @@ uint32_t fletcher32( uint16_t const *data, size_t words )
         return sum2 << 16 | sum1;
 }
 //-----------------------------------------------------------
-std::pair<Json::Value*, SHP(ZMB::GenericLocker)> Settings::get_all()
-{
-    return std::pair<Json::Value*, SHP(ZMB::GenericLocker)> (&all, get_locker());
-}
 
-std::shared_ptr<GenericLocker> Settings::get_locker() const
-{
-  return ZMB::GenericLocker::make_item((void*)this, lock_fn_ptr, unlock_fn_ptr);
-}
 
 Settings::Settings()
 {
-    lock_fn_ptr = [](void* Settings_cast_ptr)
-    {
-        Settings* s = (Settings*)Settings_cast_ptr;
-        s->m_mutex.lock();
-    };
+  auto lk = getLocker();
+  lk.unlock();
 
-    unlock_fn_ptr = [](void* Settings_cast_ptr)
-    {
-        Settings* s = (Settings*)Settings_cast_ptr;
-        s->m_mutex.unlock();
-    };
+  set(ZMKW_LOGPORT, ZCSTR("59000"), lk);
+  set(ZMKW_LOGSERVER, ZCSTR("127.0.0.1"), lk);
+  set(ZMKW_LOGPROTO, ZCSTR("ZMG_PUB"), lk);
+  ZConstString home_str((const char*)secure_getenv("HOME"));
+  set(ZMB::ZMKW_USER_HOME, home_str, lk);
 
+  char* temp = (char*)alloca(ZMB::max<unsigned>(1024u, (unsigned)(4 * home_str.len)));
+  ZUnsafeBuf buf(temp, 1024); buf.fill(0);
+  buf.read(0, home_str, 0);
+  char* origin = buf.begin();
 
-    set(ZMKW_LOGPORT, ZCSTR("59000"));
-    set(ZMKW_LOGSERVER, ZCSTR("127.0.0.1"));
-    set(ZMKW_LOGPROTO, ZCSTR("ZMG_PUB"));
-    ZConstString home_str((const char*)secure_getenv("HOME"));
-    set(ZMB::ZMKW_USER_HOME, home_str);
+  buf.str += home_str.len;//advance to point after the user home location
+  buf.len -= home_str.len;
 
-    char* temp = (char*)alloca(ZMB::max<unsigned>(1024u, (unsigned)(4 * home_str.len)));
-    ZUnsafeBuf buf(temp, 1024); buf.fill(0);
-    buf.read(0, home_str, 0);
-    char* origin = buf.begin();
+  auto __set_value = [&](ZConstString str, ZConstString key) mutable
+  {
+    char* end = 0;
+    buf.read(&end, str, 0);
+    *end = '\0';
+    set(key, ZConstString(origin, end), lk);
+  };
+  __set_value(ZCSTR("/zmbaq_config.json"), ZMKW_CFG_LOCATION);
 
-    buf.str += home_str.len;//advance to point after the user home location
-    buf.len -= home_str.len;
+  /** TODO: platform-dependent temporary storage. **/
+  __set_value(ZCSTR("/tmp/video_temp"), ZMKW_FS_TEMP_LOCATION);
+  __set_value(ZCSTR("/tmp/video_perm"), ZMKW_FS_PERM_LOCATION);
 
-    auto __set_value = [&](ZConstString str, ZConstString key) mutable
-    {
-        char* end = 0;
-        buf.read(&end, str, 0);
-        *end = '\0';
-        set(key, ZConstString(origin, end));
-    };
-    __set_value(ZCSTR("/zmbaq_config.json"), ZMKW_CFG_LOCATION);
-
-    /** TODO: platform-dependent temporary storage. **/
-    __set_value(ZCSTR("/tmp/video_temp"), ZMKW_FS_TEMP_LOCATION);
-    __set_value(ZCSTR("/tmp/video_perm"), ZMKW_FS_PERM_LOCATION);
-
-    __set_value(ZCSTR("/tmp/test_db"), ZMKW_TESTDB_LOCATION);
-    __set_value(ZCSTR("/tmp/test_blob_db"), ZMKW_TESTDBBLOB_LOCATION);
+  __set_value(ZCSTR("/tmp/test_db"), ZMKW_TESTDB_LOCATION);
+  __set_value(ZCSTR("/tmp/test_blob_db"), ZMKW_TESTDBBLOB_LOCATION);
 }
 
-void Settings::set(ZConstString key, ZConstString value)
+void Settings::set(ZConstString key, const Json::Value& val, Locker_t& lk)
 {
-    all[key.begin()] = Json::Value(value.begin(), value.end());
+  (void)lk;
+  all[key.begin()] = val;
 }
 
-ZConstString Settings::get_string(ZConstString key) const
+void Settings::set(ZConstString key, ZConstString value, Settings::Locker_t& lk)
 {
-    auto jp = get_jvalue(key);
-    bool ok = nullptr != jp && jp->isString();
-    const char* b = 0, *e = 0;
-    assert(ok);
-    if (ok)
+  (void)lk;
+  all[key.begin()] = Json::Value(value.begin(), value.end());
+}
+
+ZConstString Settings::string(ZConstString key, Settings::Locker_t& lk) const
+{
+  (void)lk;
+  auto jp = jvalue(key, lk);
+  bool ok = nullptr != jp && jp->isString();
+  const char* b = 0, *e = 0;
+  assert(ok);
+  if (ok)
     {
-        jp->getString(&b, &e);
+      jp->getString(&b, &e);
     }
-    return ZConstString(b, e);
+  return ZConstString(b, e);
 }
 
-const Json::Value* Settings::get_jvalue(ZConstString key) const
+const Json::Value* Settings::jvalue(ZConstString key, Settings::Locker_t& lk) const
 {
-    return all.find(key.begin(), key.end());
+  (void)lk;
+  return all.find(key.begin(), key.end());
 }
 
-void Settings::s_set(ZConstString key, ZConstString value, SHP(GenericLocker) locker)
+Json::Value* Settings::getAll(Locker_t& lk)
 {
-   return set(key, value);
+  (void)lk;
+  return &all;
 }
-
-ZConstString Settings::s_get_string(ZConstString key, SHP(GenericLocker) locker) const
-{
-   return get_string(key);
-}
-
-const Json::Value* Settings::s_get_jvalue(ZConstString key, SHP(GenericLocker) locker) const
-{
-    return get_jvalue(key);
-}
-
-
 
 //double-check singleton:
-std::atomic<Settings*> Settings::m_instance;
+std::shared_ptr<Settings> Settings::m_instance;
 std::mutex Settings::m_mutex;
 
 Settings* Settings::instance()
 {
-    Settings* ptr = m_instance.load();
-    if (nullptr != ptr)
-        return ptr;
+    if (nullptr != m_instance)
+      {
+        return m_instance.get();
+      }
     std::lock_guard<std::mutex> lock(m_mutex);
-    ptr = m_instance.load();
-
-    if (nullptr == ptr)
+    if (nullptr == m_instance)
     {
-        ptr = new Settings;
-        m_instance.store(ptr);
+        m_instance = std::make_shared<Settings>();
     }
-    return ptr;
+    return m_instance.get();
 }
 //-----------------------------------------------------------
 

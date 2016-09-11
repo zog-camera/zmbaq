@@ -18,6 +18,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #include "noteinfo.h"
 #include <arpa/inet.h>
 #include "src/fshelper.h"
+#include <cstring>
 
 namespace ZMB {
 
@@ -71,7 +72,7 @@ bool NoteInfo::NoteId::make_event_id(ZUnsafeBuf* str, char** p_end) const
     t << 32;
     t |= htonl(p_ts[1]);
 
-    memcpy(txt.end(), &t, sizeof(t));
+    ::memcpy(txt.end(), &t, sizeof(t));
     end += sizeof(t);
 
     str->len = end - str->begin();

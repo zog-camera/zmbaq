@@ -25,6 +25,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <cassert>
 #include <mutex>
 
+#include "noncopyable.hpp"
 #include "zmb_str.h"
 #include "mbytearray.h"
 
@@ -80,6 +81,7 @@ ZM_DEF_STATIC_CONST_STRING(ZMKW_FS_PERM_LOCATION, "fs_perm_location")
 ZM_DEF_STATIC_CONST_STRING(ZMKW_TESTDB_LOCATION, "testdb_locaiton")
 ZM_DEF_STATIC_CONST_STRING(ZMKW_TESTDBBLOB_LOCATION, "testdb_blob_location")
 
+using namespace ZMBCommon;
 
 /** Singleton that lets access the key-value settings.
  * Method's name prefix "s_*" stands for "thread-safe" (with locking).
@@ -87,32 +89,34 @@ ZM_DEF_STATIC_CONST_STRING(ZMKW_TESTDBBLOB_LOCATION, "testdb_blob_location")
 class Settings
 {
 public:
-    static Settings* instance();
+  /** Get singleton object.*/
+  static Settings* instance();
+  typedef std::unique_lock<std::mutex> Locker_t;
 
-    void set(ZConstString key, ZConstString value);
-    void s_set(ZConstString key, ZConstString value, SHP(GenericLocker) locker);
+  /** Constructing local object will not make singleton instance.*/
+  Settings();
 
-    ZConstString get_string(ZConstString key) const;
-    ZConstString s_get_string(ZConstString key, SHP(GenericLocker) locker) const;
+  std::mutex accessMutex;
+  Locker_t&& getLocker() {return std::move(Locker_t(accessMutex));}
 
-    const Json::Value* get_jvalue(ZConstString key) const;
-    const Json::Value* s_get_jvalue(ZConstString key, SHP(GenericLocker) locker) const;
+  //setters:
+  void set(ZConstString key, const Json::Value& val, Locker_t& lk);
+  void set(ZConstString key, ZConstString value, Locker_t& lk);
 
-    /** Get the whole JSON key-values map and block access
+  //getters:
+  ZConstString string(ZConstString key, Locker_t& lk) const;
+
+  const Json::Value* jvalue(ZConstString key, Locker_t& lk) const;
+
+  /** Get the whole JSON key-values map and block access
      * via mutex locking until returned value exists. */
-    std::pair<Json::Value*, SHP(ZMB::GenericLocker)> get_all();
+  Json::Value* getAll(Locker_t& lk);
 
-    std::shared_ptr<ZMB::GenericLocker> get_locker() const;
 
 private:
-    Settings();
-    static std::atomic<Settings*> m_instance;
-    static std::mutex m_mutex;
-
-    ZMB::GenericLocker::lk_pfn_t lock_fn_ptr;
-    ZMB::GenericLocker::lk_pfn_t unlock_fn_ptr;
-
-    Json::Value all;
+  static std::shared_ptr<Settings> m_instance;
+  static std::mutex m_mutex; //singleton mutex
+  Json::Value all;
 };
 //======================================================================
 //simple Fletcher's checksum (from wiki)
@@ -120,16 +124,6 @@ uint16_t fletcher16(const uint8_t* data, size_t bytes );
 
 //simple 32-bit Fletcher's checksum (from wiki)
 uint32_t fletcher32( uint16_t const *data, size_t words );
-
-class noncopyable
-{
-protected:
-    noncopyable() = default;
-    ~noncopyable() = default;
-    noncopyable( const noncopyable& ) = delete;
-    noncopyable& operator=( const noncopyable& ) = delete;
-};
-
 
 }//namespace ZMB
 

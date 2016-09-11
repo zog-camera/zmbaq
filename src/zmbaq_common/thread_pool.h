@@ -18,7 +18,7 @@ struct CallableDoubleFunc
 {
   CallableDoubleFunc() { tag.fill(0x00); }
   std::array<char, 16> tag;
-  WebGrep::CallableFunc_t functor;
+  CallableFunc_t functor;
   std::function<void(const std::exception&)> cbOnException;
 };
 
@@ -28,9 +28,9 @@ typedef std::function<bool(CallableDoubleFunc**, size_t*, size_t)> IteratorFunc2
 
 //simple(default) array iteration function: increment a pointer and a counter
 //returns TRUE while last item is not reached
-bool PtrForwardIterationDbl(WebGrep::CallableDoubleFunc** arrayPPtr, size_t* counter, size_t maxValue);
+bool PtrForwardIterationDbl(CallableDoubleFunc** arrayPPtr, size_t* counter, size_t maxValue);
 //same as above, but for function<void()> type
-bool PtrForwardIteration(WebGrep::CallableFunc_t** arrayPPtr, size_t* counter, size_t maxValue);
+bool PtrForwardIteration(CallableFunc_t** arrayPPtr, size_t* counter, size_t maxValue);
 
 
 //-------------------------------------------------------------------------
@@ -46,7 +46,7 @@ struct TPool_ThreadData
    * Possible exceptions: bad_alloc.
    * @return count of items serialized */
   size_t enqueue(std::unique_lock<std::mutex>& lk,
-                 WebGrep::CallableFunc_t* ftorArray, size_t len,
+                 CallableFunc_t* ftorArray, size_t len,
                  IteratorFunc_t iterFn = PtrForwardIteration);
 
   /** Serialize functors to this thread. Call notify() later to take effect.
@@ -88,7 +88,7 @@ typedef std::shared_ptr<TPool_ThreadData> TPool_ThreadDataPtr;
  *  the user must set CallableDoubleFunc.cbOnException callbacks for each task during submission
  *  via the submit(const CallableDoublefunc* array ...) method.
 */
-class ThreadsPool : public WebGrep::noncopyable
+class ThreadsPool : public ZMBCommon::noncopyable
 {
 public:
 
@@ -100,7 +100,7 @@ public:
   bool closed() const;
 
   //submit 1 task that has no cbOnException callback.
-  bool submit(const WebGrep::CallableFunc_t& ftor);
+  bool submit(const CallableFunc_t& ftor);
 
   //submit 1 task with cbOnException callback
   bool submit(CallableDoubleFunc& ftor);
@@ -136,7 +136,7 @@ public:
 
   /** same as submit(CallableDoubleFunc* ftorArray, size_t ..)
    *  but for functors without exception control (they're catched and ignored)*/
-  bool submit(WebGrep::CallableFunc_t* ftorArray, size_t len,
+  bool submit(CallableFunc_t* ftorArray, size_t len,
               IteratorFunc_t iterFn = PtrForwardIteration, bool spray = true);
 
   /** Get a one thread handle to serialize things in your own manner,

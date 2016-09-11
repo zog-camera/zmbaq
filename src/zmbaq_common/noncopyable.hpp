@@ -1,7 +1,7 @@
 #ifndef NONCOPYABLE_HPP
 #define NONCOPYABLE_HPP
 
-namespace WebGrep {
+namespace ZMBCommon {
 
 class noncopyable
 {
@@ -12,5 +12,5 @@ public:
     noncopyable& operator=( const noncopyable& ) = delete;
 };
 
-}//WebGrep
+}//ZMBCommon
 #endif // NONCOPYABLE_HPP

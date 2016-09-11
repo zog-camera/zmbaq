@@ -22,9 +22,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "zmbaq_common.h"
 #include "mbytearray.h"
 #include <atomic>
+#include "Poco/Channel.h"
 
 
 namespace ZMFS {
+
+using namespace ZMBCommon;
 
 class FSHelper;
 
@@ -93,7 +96,7 @@ class FSHelper : public std::enable_shared_from_this<FSHelper>
 public:
     std::function<void(SHP(FSHelper), SHP(FSItem))> sig_file_stored;
 
-    FSHelper();
+    explicit FSHelper(Poco::Channel* logChannel = nullptr);
     virtual ~FSHelper();
 
     /** If empty, then it is initially set to values in ZMB::Settings.*/

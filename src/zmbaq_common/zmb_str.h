@@ -25,9 +25,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef ZM_DEF_STATIC_CONST_STRING
     #define ZM_DEF_STATIC_CONST_STRING(VAR_NAME, STR) \
-    static const ZConstString (VAR_NAME)((STR), sizeof(STR) - 1, ZConstString::Type::STATIC_CONST);
+    static const ZMBCommon::ZConstString (VAR_NAME)((STR), sizeof(STR) - 1, ZMBCommon::ZConstString::Type::STATIC_CONST);
 
-    #define ZCSTR(CONST_STRING) ZConstString((CONST_STRING), sizeof(CONST_STRING) - 1, ZConstString::Type::STATIC_CONST)
+    #define ZCSTR(CONST_STRING) ZMBCommon::ZConstString((CONST_STRING), sizeof(CONST_STRING) - 1, ZMBCommon::ZConstString::Type::STATIC_CONST)
 
 #endif //ZM_DEF_STATIC_CONST_STRING
 

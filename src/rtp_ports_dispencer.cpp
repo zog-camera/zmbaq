@@ -16,14 +16,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 
 #include "rtp_ports_dispencer.h"
-#include "cds_map.h"
 #include <assert.h>
-#include <tbb/cache_aligned_allocator.h>
-#include "logservice.h"
 #include <atomic>
+#include "Poco/Message.h"
+
+namespace ZMB {
+
 
 //----------------------------------------------------------
-class EvensArray : public std::deque<uint16_t, tbb::cache_aligned_allocator<uint16_t>>
+class EvensArray : public std::deque<uint16_t>
 {
 public:
 
@@ -133,12 +134,11 @@ public:
     RTPPortsDispencerPV(uint16_t rlow, uint16_t rhi)
         : low(rlow), hi(rhi)
     {
-        auto it = m_free.begin();
         bool ok = true;
         //insert (even, odd) pairs
         for (uint16_t c = rlow; c < rhi && ok; c += 2)
         {
-            ok = it.prepend(c, c + 1);
+            m_free[c] = c + 1;
         }
         assert(ok);
     }
@@ -161,8 +161,14 @@ public:
         else
         {
             //no free ports, some shit happend
-            AERROR(ZCSTR("No free UDP ports left!"));
-            assert(false);
+            if (logChannel)
+              {
+                Poco::Message _msg;
+                _msg.setSource(__FUNCTION__);
+                _msg.setText(std::string("No free UDP ports left!"));
+                logChannel->log(_msg);
+              }
+            return RTPPortPair();
         }
         if (nullptr != tag.begin())
         {
@@ -181,11 +187,11 @@ public:
         auto it = m_map_ref.find(even);
         if (m_map_ref.end() != it)
         {
-            ++(*it);
+            (*it).second++;
         }
         else
         {
-	    (*it) = 1u;
+            (*it).second = 1u;
         }
 
     }
@@ -195,8 +201,8 @@ public:
         auto it = m_map_ref.find(even);
         if (m_map_ref.end() != it)
         {
-            --(*it);
-            return it.value();
+            (*it).second--;
+            return (*it).second;
         }
         return 0;
     }
@@ -205,9 +211,8 @@ public:
     {
         if (0 == decref(item.even))
         {
-            m_tags.remove_tagged_port(item.tag, item.even);
-            auto mg = m_free.mg();
-            mg.second->emplace(item.even, item.odd);
+            m_tags.remove_tagged_port(ZConstString(item.tag.data(),item.tag.size()), item.even);
+            m_free[item.even] = item.odd;
         }
     }
 
@@ -216,6 +221,8 @@ public:
     std::string d_server_ip;
     TagsMap m_tags;
 
+    std::mutex d_mutex;
+    Poco::Channel* logChannel;
 private:
     PortsMap m_free;
     PortsMapRef m_map_ref;
@@ -233,15 +240,21 @@ void RTPPortPair::reset()
 //--------------------------------------------------------
 
 
-RTPPortsDispencer::RTPPortsDispencer(uint16_t rlow, uint16_t rhi)
+RTPPortsDispencer::RTPPortsDispencer(uint16_t rlow, uint16_t rhi, Poco::Channel* logChannel)
     : pv(std::make_shared<RTPPortsDispencerPV>(rlow, rhi))
 {
     set_destination_ip("127.0.0.1");
+    pv->logChannel = logChannel;
 }
 
 RTPPortsDispencer::~RTPPortsDispencer()
 {
 
+}
+
+std::pair<std::mutex*, SHP(RTPPortsDispencerPV)> RTPPortsDispencer::getMutex()
+{
+  return std::pair<std::mutex*, SHP(RTPPortsDispencerPV)>(&(pv->d_mutex), pv);
 }
 
 void RTPPortsDispencer::set_destination_ip(const std::string& addr)
@@ -259,7 +272,7 @@ RTPPortPair RTPPortsDispencer::obtain(ZConstString use_tag)
     RTPPortPair p = pv->obtain();
     if (nullptr != use_tag.begin())
     {
-        memcpy(p.tag, use_tag.begin(), ZMB::min<size_t>(sizeof(p.tag) - 1, use_tag.size()) );
+        ::memcpy(p.tag.data(), use_tag.begin(), ZMB::min<size_t>(sizeof(p.tag) - 1, use_tag.size()) );
     }
     return p;
 }
@@ -284,3 +297,4 @@ EvensArrayPtr RTPPortsDispencer::get_tagged_ports(const ZConstString& tag) const
     return pv->m_tags.get_tagged_ports(tag);
 }
 
+}//namespace ZMB

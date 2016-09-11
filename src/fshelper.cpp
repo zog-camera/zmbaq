@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #include <Poco/File.h>
 #include <Poco/Exception.h>
 #include <assert.h>
-#include "logservice.h"
+#include "Poco/Message.h"
 #include <Poco/DirectoryIterator.h>
 
 namespace ZMFS {
@@ -135,13 +135,14 @@ class FSHelper::FSPV
 public:
     FSPV(FSHelper* p) : master(p)
     {
+      logChannel = nullptr;
         temp_location = std::make_shared<FSLocation>(p);
         perm_location = std::make_shared<FSLocation>(p);
-
-        auto lk = ZMB::Settings::instance()->get_locker();
-        ZConstString path = ZMB::Settings::instance()->s_get_string(ZMB::ZMKW_FS_TEMP_LOCATION, lk);
+        ZMB::Settings* settings = ZMB::Settings::instance();
+        std::unique_lock<std::mutex> lk(settings->accessMutex);
+        ZConstString path = settings->string(ZMB::ZMKW_FS_TEMP_LOCATION, lk);
         temp_location->location = path;
-        path = ZMB::Settings::instance()->s_get_string(ZMB::ZMKW_FS_PERM_LOCATION, lk);
+        path = settings->string(ZMB::ZMKW_FS_PERM_LOCATION, lk);
         perm_location->location = path;
         perm_location->type = FSLocation::FS_PERMANENT_LOCAL;
     }
@@ -169,13 +170,13 @@ public:
             break;
         }
     }
-
+    Poco::Channel* logChannel;
     FSHelper* master;
     SHP(FSLocation) temp_location;
     SHP(FSLocation) perm_location;
 };
 
-FSHelper::FSHelper() : pv(std::make_shared<FSPV>(this))
+FSHelper::FSHelper(Poco::Channel* logChannel) : pv(std::make_shared<FSPV>(this))
 {
 
 }
@@ -243,7 +244,13 @@ SHP(FSItem) FSHelper::store_permanently(const FSItem* item)
         file.moveTo(abs);
     }catch (Poco::Exception& ex)
     {
-        AERROR(ex.message());
+      if (pv->logChannel)
+        {
+          Poco::Message msg;
+          msg.setSource(std::string(__FUNCTION__));
+          msg.setText(ex.message());
+          pv->logChannel->log(msg);
+        }
     }
 
     if (nullptr != sig_file_stored)

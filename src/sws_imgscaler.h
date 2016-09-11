@@ -41,7 +41,7 @@ class SwsImgScaler
 {
 
 public:
-    std::function<void(SwsImgScaler* sc, SHP(MByteArray) msg)>*
+    std::function<void(SwsImgScaler* sc, ZMBCommon::ZConstString msg)>*
         pfn_sig_error() const;
 
     SwsImgScaler();

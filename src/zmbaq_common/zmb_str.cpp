@@ -285,13 +285,7 @@ void ZUnsafeBuf::fill(int val) {if (size() > 0) memset(begin(), val, size());}
 ///----------------------------------------------------------------------------
 bool operator == (const ZMBCommon::ZConstString& first, const ZMBCommon::ZConstString& second)
 {
-    if (first.begin() == second.begin() && first.size() == first.size())
-        return true;
-
-    if (first.size() != second.size())
-        return false;
-
-    return 0 < first.size() && 0 == memcmp(first.begin(), second.begin(), first.size());
+    return first.begin() == second.begin() && first.size() == second.size();
 }
 
 bool operator != (const ZMBCommon::ZConstString& first, const ZMBCommon::ZConstString& second)

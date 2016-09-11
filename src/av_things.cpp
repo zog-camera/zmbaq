@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 //#include <QImage>
 //#include "sws_imgscaler.h"
 #include "mbytearray.h"
-#include "logservice.h"
 #include <pthread.h>
 
 extern "C" {
@@ -34,6 +33,8 @@ extern "C" {
     #include <pthread.h>
     #include <assert.h>
 }
+
+namespace ZMB {
 
 pthread_once_t av_once_control = PTHREAD_ONCE_INIT;
 static pthread_mutex_t g_avcodec_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -127,7 +128,7 @@ struct av_things::impl
     void operator<<(const ZConstString& msg_dump)
     {
         std::cerr << msg_dump.begin();
-        AERROR(msg_dump);
+//        AERROR(msg_dump);
     }
 
     int get_video_stream_and_codecs()
@@ -248,9 +249,9 @@ int av_things::open(const ZConstString& url)
     {
         auto e = averror_to_string(err);
 	*pv << ZCSTR("Error! Can not find stream info: ");
-	*pv << ZConstString(e.data(), e.size())
-            << ZCSTR("\n requested URL: ")
-            << url;
+	*pv << ZConstString(e.data(), e.size());
+	*pv << ZCSTR("\n requested URL: ");
+	*pv << url;
         return err;
     }
     else
@@ -375,3 +376,5 @@ const AVRational* av_things::get_timebase() const
     assert(is_open());
     return &pv->av_format_ctx->streams[pv->v_stream_idx]->time_base;
 }
+
+}//namespace ZMB

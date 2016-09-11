@@ -17,6 +17,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "survcamparams.h"
 #include "noteinfo.h"
+#include <cstring>
 
 namespace ZMB {
 bool operator < (const ZMB::SurvlObjectID& one, const ZMB::SurvlObjectID& two)
@@ -51,8 +52,8 @@ bool VideoEntityID::read_from_hex4b(const ZConstString& hex4b, char** p_end)
 bool VideoEntityID::operator () (const VideoEntityID& one, const VideoEntityID& two) const
 {
     u_int64_t a = 0, b = 0;
-    memcpy(&a, &one, 8);
-    memcpy(&b, &two, 8);
+    ::memcpy(&a, &one, 8);
+    ::memcpy(&b, &two, 8);
     if (a < b)
         return true;
     return one.id < two.id;
@@ -60,15 +61,6 @@ bool VideoEntityID::operator () (const VideoEntityID& one, const VideoEntityID& 
 
 SurvCamParams::SurvCamParams()
 {
-}
-
-SHP(GenericLocker) SurvCamParams::get_locker()
-{
-    return GenericLocker::make_item
-            (this,
-             [](void* param) {SurvCamParams* s = (SurvCamParams*)param; s->mu.lock();},
-             [](void* param) {SurvCamParams* s = (SurvCamParams*)param; s->mu.unlock();}
-    );
 }
 
 void SurvCamParams::set_rtp(const ZMBCommon::MByteArray& server, u_int16_t port)

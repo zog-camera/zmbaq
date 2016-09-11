@@ -138,9 +138,9 @@ std::string jexport(const Json::Value* val);
 
 
 //bool operator == (const char* str, const MByteArray& arr);
-bool operator == (const ZUnsafeBuf& str, const ZMBCommon::MByteArray& arr);
-bool operator == (const ZConstString& str, const ZMBCommon::MByteArray& arr);
-ZMBCommon::MByteArray operator + (const ZMBCommon::MByteArray& one, const ZConstString& another);
+bool operator == (const ZMBCommon::ZUnsafeBuf& str, const ZMBCommon::MByteArray& arr);
+bool operator == (const ZMBCommon::ZConstString& str, const ZMBCommon::MByteArray& arr);
+ZMBCommon::MByteArray operator + (const ZMBCommon::MByteArray& one, const ZMBCommon::ZConstString& another);
 bool operator < (const ZMBCommon::MByteArray& one, const ZMBCommon::MByteArray& another);
 
 

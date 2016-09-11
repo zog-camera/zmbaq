@@ -75,13 +75,13 @@ struct Maker
 
 };
 size_t TPool_ThreadData::enqueue(std::unique_lock<std::mutex>& lk,
-                                 WebGrep::CallableFunc_t* array, size_t len, IteratorFunc_t iterFn)
+                                 CallableFunc_t* array, size_t len, IteratorFunc_t iterFn)
 {
   (void)lk;
-  WebGrep::CallableFunc_t* ptr = array;
+  CallableFunc_t* ptr = array;
 
   size_t cnt = 0;
-  WebGrep::CallableDoubleFunc dfunc;
+  CallableDoubleFunc dfunc;
   bool ok = true;
   for(; ok; ok = iterFn(&ptr, &cnt, len))
     {
@@ -126,12 +126,12 @@ void ThreadsPool_processingLoop(const TPool_ThreadDataPtr& td)
   //the dtor() will either execute or export unfinished jobs
 }
 
-bool PtrForwardIterationDbl(WebGrep::CallableDoubleFunc** arrayPPtr, size_t* counter, size_t maxValue)
+bool PtrForwardIterationDbl(CallableDoubleFunc** arrayPPtr, size_t* counter, size_t maxValue)
 {
   ++(*arrayPPtr);
   return ++(*counter) < maxValue;
 }
-bool PtrForwardIteration(WebGrep::CallableFunc_t** arrayPPtr, size_t* counter, size_t maxValue)
+bool PtrForwardIteration(CallableFunc_t** arrayPPtr, size_t* counter, size_t maxValue)
 {
   ++(*arrayPPtr);
   return ++(*counter) < maxValue;
@@ -169,7 +169,7 @@ bool ThreadsPool::submit(CallableDoubleFunc& ftor)
     return false;
   return submit(&ftor, 1);
 }
-bool ThreadsPool::submit(const WebGrep::CallableFunc_t& ftor)
+bool ThreadsPool::submit(const CallableFunc_t& ftor)
 {
   if (closed())
     return false;
@@ -228,7 +228,7 @@ bool ThreadsPool::submit(CallableDoubleFunc* ftorArray, size_t len,
   return true;
 }
 //-----------------------------------------------------------------------------
-bool ThreadsPool::submit(WebGrep::CallableFunc_t* ftorArray, size_t len,
+bool ThreadsPool::submit(CallableFunc_t* ftorArray, size_t len,
                          IteratorFunc_t iterFn, bool spray)
 {
   if (closed())
@@ -253,7 +253,7 @@ bool ThreadsPool::submit(WebGrep::CallableFunc_t* ftorArray, size_t len,
 
     //case we serialize tasks to all threads (spraying them):
     CallableFunc_t* ptr = ftorArray;
-    WebGrep::CallableDoubleFunc dfunc;
+    CallableDoubleFunc dfunc;
 
     bool ok = true;
     for(size_t cnt = 0; ok; ok = iterFn(&ptr, &cnt, len))

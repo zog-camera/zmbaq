@@ -30,6 +30,9 @@ struct AVPacket;
 struct AVFormatContext;
 struct AVRational;
 
+namespace ZMB {
+
+using namespace ZMBCommon;
 
 //Inits them once within the program:
 void init_ffmpeg_libs();
@@ -57,10 +60,9 @@ void init_ffmpeg_libs();
             yuv_frame = myav.decode_frame(got_picture, &pkt);
             if(got_picture)
             {
-                SHP(QImage) img = myav.converted_frame();
-                img->save("transcoded.png");
+                int av_pix_fmt = 0; glm::ivec2 dim(0,0);
+                AVPicture* pic = myav.frame(av_pix_fmt, dim);
                 // ... some nasty things with data here....
-                av_free_packet(&pkt);
             }
         }
     }
@@ -111,14 +113,6 @@ public:
 
     void limit_output_img_size(glm::ivec2 size);
 
-//    /** Get decoded frame converted to BGR24 format (suitable for OpenCV).
-//     *  @return pointer valid within object's life time, data can be modified. */
-//    u_int8_t* converted_frame(size_t& len) const;
-
-//    /** Returns non-NULL pointer only after successfull decode_frame() call
-//     * with (got_picture_indicator == 1) in result. */
-//    SHP(QImage) converted_frame() const;
-
     /** Get fps in seconds*/
     double fps() const;
 
@@ -147,5 +141,7 @@ private:
     struct impl;
     std::shared_ptr<impl> pv;
 };
+
+}//namespace ZMB
 
 #endif // AV_THINGS_H

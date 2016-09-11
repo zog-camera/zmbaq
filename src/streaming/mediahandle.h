@@ -22,6 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <memory>
 #include <Poco/Net/IPAddress.h>
+#include "Poco/Channel.h"
+
 #include "mbytearray.h"
 #include "zmbaq_common.h"
 #include "jsoncpp/json/json.h"
@@ -30,14 +32,16 @@ namespace ZMFS {
     class FSItem;
 }
 
+struct AVFormatContext;
+struct AVPacket;
+
+
+namespace ZMB {
 
 class ffmediastream;
-namespace ZMB {
-    class FFileWriterBase;
-}
-struct AVFormatContext;
+class FFileWriterBase;
+
 class ffmpeg_rtp_encoder;
-struct AVPacket;
 
 //-----------------------------------------------------------------------------------
 //------------------------------------------------------------------------------------
@@ -58,8 +62,7 @@ public:
     /** Emitted when file write has stopped.*/
     std::function<void (SHP(MediaHandle), SHP(ZMB::FFileWriterBase))> sig_file_written;
 
-//    explicit MediaHandle (SurvFfmpegCam* master);
-    MediaHandle ();
+    explicit MediaHandle (Poco::Channel* logChan);
     virtual ~MediaHandle ();
 
     SHP(ffmediastream) get_media_stream() const;
@@ -82,10 +85,6 @@ public:
     /** @return pointer to recent file or NULL if called prior to write_file().*/
     SHP(ZMB::FFileWriterBase) stop_file();
 
-//    /** Set up to get raw frames from USB camera and amke H264 encoding & RTP streaming.*/
-//    void construct(SHP(SurvFfmpegCam) cam, const QHostAddress& remote_addr, u_int16_t udp_port,
-//                   bool direct_connection = false);
-
     /** Construct re-streamer anything to RTP*/
     void construct(const AVFormatContext* src_context,
                    const Poco::Net::IPAddress& remote_addr, u_int16_t udp_port,
@@ -105,21 +104,7 @@ public:
      * Works only after construct(); */
     const Json::Value& get_sdp() const;
 
-//    /** pass frame to the h264/RTP encoder and perform the encoding.
-//     * Move this object to separate thread to make this operation
-//     * asynchronous.
-//     * @param fram: raw image to be encoded. */
-//    void on_surface_frame_available(SHP(QImage) frame);
-
-//    /** pass frame to the h264/RTP encoder and perform the encoding.
-//     * Move this object to separate thread to make this operation
-//     * asynchronous.
-//     * @param fram: raw image to be encoded. */
-//    void on_frame_available(SHP(SurvFrame) frame);
-
-
-    void on_file_writer_error(std::shared_ptr<ZMB::FFileWriterBase> fptr,
-                              const ZMBCommon::MByteArray& msg);
+    void on_file_writer_error(std::shared_ptr<ZMB::FFileWriterBase> fptr, const std::string& msg);
 
     void on_rtp_stream_created(const Json::Value& rtp_settings, const ZMBCommon::MByteArray& rtp_settings_str);
 
@@ -129,13 +114,13 @@ protected:
     //keeps the current sdp settings:
     Json::Value sdp;
     ZMBCommon::MByteArray sdp_str;
-
+    Poco::Channel* logChan;
     SHP(ffmediastream) media_stream;
-//    SHP(SurvFfmpegCam) p_cam;
-//    SurvFfmpegCam* p_master;
 };
 //------------------------------------------------------------------------------------
 typedef std::shared_ptr<MediaHandle> MediaHandlePtr;
 //------------------------------------------------------------------------------------
+
+}//namespace ZMB
 
 #endif // SDLGHOLDER_H

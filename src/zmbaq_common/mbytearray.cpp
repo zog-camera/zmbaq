@@ -325,31 +325,28 @@ std::string jexport(const Json::Value* val)
 
 
 //-------------------------------
-ZMBCommon::MByteArray operator + (const ZMBCommon::MByteArray& one, const ZConstString& another)
+ZMBCommon::MByteArray operator + (const ZMBCommon::MByteArray& one, const ZMBCommon::ZConstString& another)
 {
    ZMBCommon::MByteArray sum;
    sum += another;
    return sum;
 }
 
-bool operator == (const ZConstString& str, const ZMBCommon::MByteArray& arr)
+bool operator == (const ZMBCommon::ZConstString& str, const ZMBCommon::MByteArray& arr)
 {
-    return str == arr.get_const_str();
+  return str.size() == arr.size() && 0 == memcmp(str.begin(), arr.data(), str.size());
 }
 
-bool operator == (const ZUnsafeBuf& str, const ZMBCommon::MByteArray& arr)
+bool operator == (const ZMBCommon::ZUnsafeBuf& str, const ZMBCommon::MByteArray& arr)
 {
-    return ZConstString((const char*)str.begin(), str.size()) == arr.get_const_str();
+  return ZMBCommon::ZConstString((const char*)str.begin(), str.size()) == arr.get_const_str();
 }
 //-------------------------------
 bool operator < (const ZMBCommon::MByteArray& one, const ZMBCommon::MByteArray& another)
 {
-   if (one.size() <  another.size())
-       return true;
-   else if (one.size() > another.size() || one == another)
-       return false;
-   else
-       return true;
+  return one.size() <  another.size()?
+        true : ((one.size() > another.size() || one == another)?
+                  false : true );
 }
 
 

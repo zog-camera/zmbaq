@@ -16,13 +16,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 
 #include "ffmediastream.h"
-//#include <QVideoFrame>
-//#include <QImage>
 #include "ffmpeg_rtp_encoder.h"
+#include "Poco/Message.h"
 #include "../ffilewriter.h"
-#include "logservice.h"
 //#include "../detection/bgsegmenter.h"
-//#include "../qcamsurface.h"
 
 
 
@@ -32,103 +29,6 @@ extern "C" {
 #include <assert.h>
 }
 
-//int ffmediastream::to_av_pixfmt(int frame_fmt)
-//{
-//    int in_pixel_format = -1;
-//    switch (frame_fmt)
-//    {
-//    case QVideoFrame::Format_ARGB32:
-//        in_pixel_format = (int)AV_PIX_FMT_ARGB;
-//        break;
-
-
-//    case QVideoFrame::Format_RGB32          :
-//        in_pixel_format = (int)AV_PIX_FMT_RGB32;
-//        break;
-
-//    case QVideoFrame::Format_RGB24          :
-//        in_pixel_format = (int)AV_PIX_FMT_RGB24;
-//        break;
-
-//    case QVideoFrame::Format_RGB565         :
-//        in_pixel_format = (int)AV_PIX_FMT_RGB565;
-//        break;
-
-//    case QVideoFrame::Format_RGB555         :
-//        in_pixel_format = (int)AV_PIX_FMT_RGB555;
-//        break;
-
-//    case QVideoFrame::Format_BGRA32         :
-//        in_pixel_format = (int)AV_PIX_FMT_BGRA;
-//        break;
-
-
-//    case QVideoFrame::Format_BGR32          :
-//        in_pixel_format = (int)AV_PIX_FMT_BGR32;
-//        break;
-
-//    case QVideoFrame::Format_BGR24          :
-//        in_pixel_format = (int)AV_PIX_FMT_BGR24;
-//        break;
-
-//    case QVideoFrame::Format_BGR565         :
-//        in_pixel_format = (int)AV_PIX_FMT_BGR565;
-//        break;
-
-//    case QVideoFrame::Format_BGR555         :
-//        in_pixel_format = (int)AV_PIX_FMT_BGR555;
-//        break;
-
-//    case QVideoFrame::Format_AYUV444        :
-//        in_pixel_format = (int)AV_PIX_FMT_YUVA444P_LIBAV;
-//        break;
-
-//    case QVideoFrame::Format_YUV444         :
-//        in_pixel_format = (int)AV_PIX_FMT_YUV444P;
-//        break;
-
-//    case QVideoFrame::Format_YUV420P   :
-//        in_pixel_format = (int)AV_PIX_FMT_YUV420P;
-//        break;
-
-
-//    case QVideoFrame::Format_UYVY      :
-//        in_pixel_format = (int)AV_PIX_FMT_UYVY422;
-//        break;
-
-
-//    case QVideoFrame::Format_YUYV     :
-//        in_pixel_format = (int)AV_PIX_FMT_YUYV422;
-//        break;
-
-//    case QVideoFrame::Format_NV12      :
-//        in_pixel_format = (int)AV_PIX_FMT_NV12;
-//        break;
-
-//    case QVideoFrame::Format_NV21       :
-//        in_pixel_format = (int)AV_PIX_FMT_NV21;
-//        break;
-
-
-//    case QVideoFrame::Format_Y8:
-//        in_pixel_format = (int)AV_PIX_FMT_GRAY8;
-//        break;
-
-//    case QVideoFrame::Format_Y16:
-//        in_pixel_format = (int)AV_PIX_FMT_GRAY16;
-//        break;
-
-//    case QVideoFrame::Format_Jpeg:
-//        in_pixel_format = (int)AV_PIX_FMT_YUVJ420P;
-//        break;
-
-//    default:
-//        assert(false);
-//        break;
-//    }
-//    return in_pixel_format;
-
-//}
 
 //void ffmediastream::on_surface_frame_available(SHP(QImage) frame)
 //{
@@ -164,6 +64,8 @@ extern "C" {
 //    on_surface_frame_available(frame->rgb_frame);
 //}
 
+namespace ZMB {
+
 void ffmediastream::block_stream()
 {
     d_block = true;
@@ -181,21 +83,21 @@ void ffmediastream::unblock_stream()
 
 
 
-ffmediastream::ffmediastream() : d_port(4999), pv(0), d_block(false)
+ffmediastream::ffmediastream(Poco::Channel* logChannel) : d_port(4999), d_block(false)
 {
-    memset(d_str_port, 0x00, 6);
-    snprintf(d_str_port, 6, "%u", d_port);
+  d_str_port.fill(0x00);
+  snprintf(d_str_port.data(), d_str_port.size(), "%u", d_port);
+  this->logChannel = logChannel;
 }
 
 ffmediastream::ffmediastream(const AVFormatContext* src_context,
                              const Poco::Net::IPAddress& remote_addr,
-                             u_int16_t udp_port)
-    : d_port(4999), pv(std::make_shared<ffmpeg_rtp_encoder>()), d_block(false)
+                             u_int16_t udp_port, Poco::Channel* logChannel)
+  : ffmediastream(logChannel)
 {
-    memset(d_str_port, 0x00, 6);
-    snprintf(d_str_port, 6, "%u", d_port);
-    auto addr_str = remote_addr.toString();
-    pv->create_stream(src_context, ZConstString(addr_str.data(), addr_str.size()), udp_port);
+  pv = std::make_shared<ffmpeg_rtp_encoder>();
+  auto addr_str = remote_addr.toString();
+  pv->create_stream(src_context, ZConstString(addr_str.data(), addr_str.size()), udp_port);
 }
 
 ffmediastream::~ffmediastream()
@@ -214,7 +116,7 @@ bool ffmediastream::is_connected() const
 void ffmediastream::stream_to_remote(const ZConstString& ip, u_int16_t udp_port)
 {
     d_port = udp_port;
-    snprintf (d_str_port, 6, "%u", d_port);
+    snprintf (d_str_port.data(), d_str_port.size(), "%u", d_port);
 
     d_server_ip = ip;
 
@@ -229,17 +131,31 @@ void ffmediastream::stream_to_remote(const ZConstString& ip, u_int16_t udp_port)
 
     if (nullptr != cb_failed)
     {
-        pv->cb_failed = [&] (const ffmpeg_rtp_encoder* encod, ZMBCommon::MByteArrayPtr msg) mutable
+        pv->cb_failed = [&] (const ffmpeg_rtp_encoder*, const std::string& msg)
         {
-            LERROR("ALL", msg);
-            cb_failed(this, msg);
+            if (logChannel)
+              {
+                logChannel->open();
+                Poco::Message _msg;
+                _msg.setSource(__FUNCTION__);
+                _msg.setText(msg);
+                logChannel->log(_msg);
+              }
+            ffmediastream::cb_failed(this, msg);
         };
     }
     if (nullptr != cb_stream_created)
     {
         pv->cb_stream_created = [&](const ffmpeg_rtp_encoder* encod, SHP(Json::Value) rtp_set) mutable
         {
-            LINFO(ZCSTR("ffmpeg_stream"), *rtp_set);
+            if (logChannel)
+              {
+                logChannel->open();
+                Poco::Message _msg;
+                _msg.setSource(__FUNCTION__);
+                _msg.setText(std::string("ffmpeg_stream spawned"));
+                logChannel->log(_msg);
+              }
             cb_stream_created(this, rtp_set);
         };
     }
@@ -258,7 +174,7 @@ bool ffmediastream::send_packet(AVPacket* pkt)
 
 const ZConstString ffmediastream::port_str() const
 {
-    return ZConstString(d_str_port, sizeof(d_str_port));
+    return ZConstString(d_str_port.data(), d_str_port.size());
 }
 
 u_int16_t ffmediastream::port() const
@@ -298,3 +214,5 @@ ZConstString ffmediastream::get_sprop() const
 {
     return pv->get_sprop();
 }
+
+}//namespace ZMB

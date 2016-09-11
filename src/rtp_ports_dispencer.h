@@ -22,9 +22,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "zmbaq_common.h"
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <deque>
 #include <array>
+#include "Poco/Channel.h"
+
+namespace ZMB {
 
 class RTPPortsDispencer;
 class RTPPortsDispencerPV;
@@ -37,10 +41,10 @@ class RTPPortsDispencerPV;
 class RTPPortPair
 {
 public:
+  //default ctor makes (0,0) which is invalid ports pair.
     RTPPortPair();
 
-    RTPPortPair(SHP(RTPPortsDispencerPV) dispencer,
-                const uint16_t& a_even, const uint16_t& a_odd);
+    RTPPortPair(uint16_t a_even, uint16_t a_odd);
 
     //release the port number, it will be returned to dispencer
     void reset();
@@ -65,13 +69,18 @@ typedef std::shared_ptr<EvensArray> EvensArrayPtr;
 /** Ports pair dispencer.
  The RTPPortPair will release it's port when last copy
  of the RTPPortPair object is destroyed.
+
+ Thread safety: all method calls must be explicitly locked using a mutex from getMutex() method.
 */
 class RTPPortsDispencer
 {
 public:
     //constructor with range:
-    RTPPortsDispencer(uint16_t rlow = 6000, uint16_t rhi = 8000);
+    RTPPortsDispencer(uint16_t rlow = 6000, uint16_t rhi = 8000,
+                      Poco::Channel* logChannel = nullptr);
     virtual ~RTPPortsDispencer();
+
+    std::pair<std::mutex*, SHP(RTPPortsDispencerPV)> getMutex();
 
     /** The RTP pair may be optionally tagged. Only first 8 bytes are used.*/
     RTPPortPair obtain(ZConstString use_tag = ZConstString(0, (size_t)0));
@@ -84,7 +93,6 @@ public:
 
     //register already obtained port(elsewhere)
     void bind(const RTPPortPair& item);
-
     void release(const RTPPortPair& item);
 
     //how much ports pairs available:
@@ -98,5 +106,8 @@ private:
     SHP(RTPPortsDispencerPV) pv;
 
 };
+
+}//namespace ZMB
+
 //---------------------------------------------------
 #endif // RTPPORTSDISPENCER_H

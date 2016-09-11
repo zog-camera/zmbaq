@@ -34,6 +34,8 @@ struct LTVars
 };
 //---------------------------------------------------------------
 
+class LinkedTask;
+
 struct LTSpawnDeleteFuncs
 {
     LTSpawnDeleteFuncs() { counter.store(0); }
@@ -87,10 +89,11 @@ public:
   /** Append items to (.next) node (on the same tree level)*/
   size_t spawnNextNodes(size_t nodesCount);
 
-  LTVars grepVars;
+  LTVars data;
 
   //level of this node
   unsigned level, order;
+
   //counds next/child nodes: load() is acquire
   std::atomic_uint childNodesCount;
 

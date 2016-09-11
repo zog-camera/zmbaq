@@ -6,7 +6,6 @@
 #include <Poco/Task.h>
 #include "src/fshelper.h"
 #include "src/avcpp/packet.h"
-#include "src/zmbaq_common/chan.h"
 
 #include "src/ffilewriter.h"
 

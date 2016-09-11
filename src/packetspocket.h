@@ -61,7 +61,7 @@ public:
     /** Describes timestamped sequence of packets with a keyframe as the heading.*/
 
     typedef std::pair<seq_key_t, SHP(av::Packet)> marked_pkt_t;
-    typedef std::vector<marked_pkt_t,tbb::cache_aligned_allocator<marked_pkt_t>> packet_seq_base_t;
+    typedef std::vector<marked_pkt_t> packet_seq_base_t;
 
     /** Has a keyframe as first element, other packets are related to that keyframe.*/
     class PacketsSequence : public packet_seq_base_t
@@ -94,7 +94,7 @@ public:
 
 protected:
     /** Frame sequences map. First frame in each sequence is a keyframe.*/
-    typedef std::deque<seq_item_t, tbb::cache_aligned_allocator<seq_item_t>> multiseq_t;
+    typedef std::deque<seq_item_t> multiseq_t;
     multiseq_t frames_sequences;
 
     /* Set if we need to make cache of frames for writing on

@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "packetspocket.h"
 #include "src/avcpp/packet.h"
-#include "zmbaq_common/logservice.h"
 #include "ffilewriter.h"
 
 namespace ZMB {
@@ -114,7 +113,7 @@ void PacketsPocket::dump_packets(seq_key_t& last_pkt_stamp, /*(FFileWriterBase*)
         snprintf(msg, sizeof(msg),
                  "file: %s frames sequence with %lu frames. Head timesec: %lf, pts: %lu\n",
                 pfile->path().data(), deq.size(), (*cursor).first, (*cursor).second);
-        LDEBUG(ZCSTR("avpacket"), ZConstString(msg, strlen(msg)));
+//        LDEBUG(ZCSTR("avpacket"), ZConstString(msg, strlen(msg)));
 
         AVPacket _p;
         for (; cursor != deq.end(); ++cursor)
@@ -153,4 +152,4 @@ void PacketsPocket::dump_packets(seq_key_t& last_pkt_stamp, /*(FFileWriterBase*)
 //-----------------------------------------------------------------
 
 
-}
+}//namespace ZMB

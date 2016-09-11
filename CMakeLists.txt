@@ -78,11 +78,13 @@ find_library(JSON_LIB
         NO_SYSTEM_ENVIRONMENT_PATH
         NO_CMAKE_SYSTEM_PATH
         NO_DEFAULT_PATH)
+include_directories(${FFMPEG_DIR}/include/jsoncpp)
 message(STATUS "libjsoncpp: ${JSON_LIB}")
 ##########################################3
 # libzmbaq_common : common things library
 # common cpps
-file(GLOB com_src src/zmbaq_common/*.cpp src/zmbaq_common/*.h )
+file(GLOB com_src src/zmbaq_common/*.cpp src/zmbaq_common/*.h* )
+add_subdirectory(src/zmbaq_common/http)
 
 add_library(zmbaq_common STATIC ${com_src})
 target_link_libraries(zmbaq_common ${ASAN_LINK_FLAGS} ${PROF_LINK_FLAGS}

@@ -119,7 +119,8 @@ public:
     Json::Value const* set(const ZConstString& key, const ZConstString& val);
     Json::Value const* set(const ZConstString& key, int val);
 
-    SHP(GenericLocker) get_locker();
+    std::unique_lock<std::mutex>&& get_locker()
+    {return std::move(std::unique_lock<std::mutex>(mu)); }
 
     std::mutex mu; //< locked manually or via GenericLocker
 

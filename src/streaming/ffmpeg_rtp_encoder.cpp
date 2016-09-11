@@ -17,8 +17,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "ffmpeg_rtp_encoder.h"
 
-#include "logservice.h"
 #include <Poco/DateTime.h>
+#include "Poco/Message.h"
+#include <sstream>
 
 extern "C" {
 #include <assert.h>
@@ -36,7 +37,7 @@ extern "C" {
 #include <libavutil/timestamp.h>
 #include <libavutil/time.h>
 }
-
+#include "../av_things.h"
 #include "../avcpp/packet.h"
 
 #include "../ffilewriter.h"
@@ -52,142 +53,57 @@ extern "C" {
     static char* extradata2psets(AVCodecContext *c);
 }
 
-//-----------------------------------------------------------------
-void  log_packet(AVRational* time_base, const AVPacket *pkt)
-{
-    char buf[256];
-    memset(buf, 0x00, sizeof(buf));
-    ZMBCommon::MByteArrayList msg;
-    msg << "pts:" << av_ts_make_string(buf, pkt->pts)
-        << " pts_time: "  << av_ts_make_time_string(buf, pkt->pts, time_base)
-        << "dts:" << av_ts_make_string(buf, pkt->dts)
-        << " dts_time: "  << av_ts_make_time_string(buf, pkt->dts, time_base)
-        << "duration:" << av_ts_make_string(buf, pkt->duration)
-        << " duration_time: "  << av_ts_make_time_string(buf, pkt->duration, time_base);
-    LDEBUG(ZCSTR("FFRTP"), msg);
-}
+namespace ZMB {
+
 
 //-----------------------------------------------------------------
-PacketsPocket::PacketsPocket()
+void  log_packet(AVRational* time_base, const AVPacket *pkt, Poco::Channel* log)
 {
-    prev_pts = 0;
-    memset(msg, 0x00, sizeof(msg));
+  if (nullptr == log)
+    {
+      return;
+    }
+  char buf[256];
+  memset(buf, 0x00, sizeof(buf));
+  std::stringstream msg;
+  msg << "pts:" << av_ts_make_string(buf, pkt->pts)
+      << " pts_time: "  << av_ts_make_time_string(buf, pkt->pts, time_base)
+      << "dts:" << av_ts_make_string(buf, pkt->dts)
+      << " dts_time: "  << av_ts_make_time_string(buf, pkt->dts, time_base)
+      << "duration:" << av_ts_make_string(buf, pkt->duration)
+      << " duration_time: "  << av_ts_make_time_string(buf, pkt->duration, time_base);
+  {
+    Poco::Message _m;
+    _m.setSource(__FUNCTION__);
+    _m.setText(msg.str());
+    log->log(_m);
+  }
 }
 
-PacketsPocket::~PacketsPocket()
-{
-
-}
-
-
-void PacketsPocket::dump_packets(seq_key_t& key, SHP(ZMB::FFileWriterBase)& pfile)
-{
-    /* Write the compressed frame to the media file. */
-    if (nullptr == pfile.get() || pfile->empty())
-        return;
-    auto it = seq.begin();
-    seq_key_t mark = (*it).first;
-    //seems that we have wrote part of the sequence (staring with a keyframe) last time
-    //lets finish it first:
-    if (mark.first == last_dump_head_mark.first)
-    {
-        packet_list_t& deq ((*it).second);
-        snprintf(msg, sizeof(msg),
-                "file: %s frames (partial)sequence with %lu frames."
-                     "Head (timesec: %lf, pts: %lu)",
-                pfile->path().data(), deq.size(),
-                last_dump_head_mark.seconds(), last_dump_head_mark.pts());
-        LDEBUG(ZCSTR("avpacket"), ZConstString(msg, strlen(msg)));
-
-        for (auto c = deq.begin(); c != deq.end(); ++c)
-        {
-            seq_key_t& k = (*c).first;
-            if (k.pts() > last_dump_tail_mark.pts() && k.pts() < key.pts())
-            {
-                pfile->write((*c).second->getAVPacket());
-            }
-        }
-        deq.clear();
-        seq.erase(it);
-    }
-
-    int sz = seq.size();
-    int cnt = 0;
-    for (it = seq.begin(); cnt < (sz - 1); it = seq.begin(), ++cnt)
-    {
-        mark = (*it).first;
-        last_dump_head_mark = mark;
-        if ( (key.first -  mark.first) < 1000.0 * ZMBAQ_PACKETS_BUFFERING_SECONDS)
-        {
-            packet_list_t& deq ((*it).second);
-            snprintf(msg, sizeof(msg),
-                    "file: %s frames sequence #%d with %lu frames. Head timesec: %lf, pts: %lu",
-                    pfile->path().data(), cnt, deq.size(), mark.first, mark.second);
-            LDEBUG(ZCSTR("avpacket"), ZConstString(msg, strlen(msg)));
-            for (auto c = deq.begin(); c != deq.end(); ++c)
-            {
-                pfile->write((*c).second->getAVPacket());
-                last_dump_tail_mark = (*c).first;
-            }
-            deq.clear();
-        }
-        seq.erase(it);
-    }
-    // 1 last sequence left in the seq
-}
-
-void PacketsPocket::push(AVPacket* pkt, SHP(ZMB::FFileWriterBase) pfile,
-                         const AVRational& time_base)
-{
-    auto key = seq_key_t(laptime.elapsed(), pkt->pts);
-    marked_pkt_t mpkt (key, std::make_shared<av::Packet>(pkt));
-
-    if (pkt->flags & AV_PKT_FLAG_KEY)
-    {
-        packet_list_t deq;
-        deq.push_back(mpkt);
-        seq.push_back(seq_item_t(key, deq));
-    }
-    else
-    {
-        auto it = seq.rbegin();
-        if (it != seq.rend())
-        {
-            //get the packet_list_t:
-            (*it).second.push_back(mpkt);
-        }
-        //else we skip packets until first key-frame comes
-    }
-    if (seq.size() > 2)
-    {
-        dump_packets(key, pfile);
-    }
-
-
-    prev_pts = pkt->pts;
-
-}
 //-----------------------------------------------------------------
 
-//Inits them once within the program:
-/*extern symbol*/void init_ffmpeg_libs();
-
-ffmpeg_rtp_encoder::ffmpeg_rtp_encoder()
+ffmpeg_rtp_encoder::ffmpeg_rtp_encoder(Poco::Channel* logChan)
 {
-    sws_ctx = NULL;
-    f_ready = false;
-    oc = 0;
-    d_rtp_port = 0;
-    video_st = 0;
-    video_codec = 0;
-    video_is_eof = 0;
-    frame = 0;
-    frame_count = 0;
-    dst_picture = new AVPicture;
-    memset(dst_picture, 0x00, sizeof(AVPicture));
-    sidedata = nullptr;
+  /* Initialize libavcodec, and register all codecs and formats. */
+  ZMB::init_ffmpeg_libs();
+  this->logChan = logChan;
+  if (logChan)
+    { logChan->open(); }
 
-    dict = 0;
+  sws_ctx = NULL;
+  f_ready = false;
+  oc = 0;
+  d_rtp_port = 0;
+  video_st = 0;
+  video_codec = 0;
+  video_is_eof = 0;
+  frame = 0;
+  frame_count = 0;
+  dst_picture = new AVPicture;
+  memset(dst_picture, 0x00, sizeof(AVPicture));
+  sidedata = nullptr;
+
+  dict = 0;
 }
 
 ffmpeg_rtp_encoder::~ffmpeg_rtp_encoder()
@@ -201,29 +117,26 @@ glm::ivec2 ffmpeg_rtp_encoder::default_enc_frame_size()
    return glm::ivec2(1280, 720);
 }
 
-ZMBCommon::MByteArray ffmpeg_rtp_encoder::get_sprop_parameters(glm::ivec2 encoded_frame_size)
+std::string ffmpeg_rtp_encoder::get_sprop_parameters(glm::ivec2 encoded_frame_size)
 {
-    static u_int16_t rnd_port = 19999;
-    static std::mutex m;
-    m.lock();
-    create_stream("127.0.0.1", rnd_port++,
-                  encoded_frame_size.x, encoded_frame_size.y);
+  static u_int16_t rnd_port = 19999;
+  static std::mutex m;
+  ffmpeg_rtp_encoder test;
+  //here we use some ffmpeg functions to predict S-prop parameters for the data frame.
+  std::unique_lock<std::mutex> lk(m); (void)lk;
+  test.create_stream("127.0.0.1", rnd_port++,
+                     encoded_frame_size.x, encoded_frame_size.y);
 
-    AVCodecContext* ctx = video_st->codec;
-    char* sprop = extradata2psets(ctx);
-    ZMBCommon::MByteArray props = ZConstString(sprop);
-    if (nullptr != sprop)
-        av_free (sprop);
+  AVCodecContext* ctx = test.video_st->codec;
+  char* sprop = extradata2psets(ctx);
+  std::string props = (sprop);
+  if (nullptr != sprop)
+    {
+      av_free (sprop);
+    }
 
-    destroy_stream();
-    ZMBCommon::MByteArrayList msg;
-    msg << __PRETTY_FUNCTION__;
-    msg << "*** sample S-prop parameters of a RTP stream: ***";
-    msg << props;
-    AINFO(msg);
-    m.unlock();
-    return props;
-
+  test.destroy_stream();
+  return props;
 }
 
 /** Encode frame and send it.*/
@@ -295,9 +208,9 @@ static void pkt_time_rescale(const AVRational *time_base, AVStream *st, AVPacket
 int ffmpeg_rtp_encoder::write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AVStream *st, AVPacket *pkt)
 {
     pkt_time_rescale(time_base, st, pkt);
-    pock.push(pkt, p_file_writer, *time_base);
-
     int res = av_interleaved_write_frame(fmt_ctx, pkt);
+    av::PacketPtr sh_pkt = std::make_shared<av::Packet>(pkt);
+    pock.push(sh_pkt);
     av_free_packet(pkt);
     return res;
 }
@@ -318,11 +231,16 @@ bool ffmpeg_rtp_encoder::write_video_frame(AVFormatContext *oc, AVStream *st, in
     auto check_if_good_ret = [&]( ) mutable -> bool{
         if (ret < 0)
         {
-            ZMBCommon::MByteArrayPtr msg = make_mbytearray(__PRETTY_FUNCTION__);
-            (*msg) += ZCSTR(" write failed.");
-            LERROR("FF", msg);
+            std::string e = "write failed";
+            if(logChan)
+              {
+                Poco::Message _m;
+                _m.setSource(__PRETTY_FUNCTION__);
+                _m.setText(e);
+                logChan->log(_m);
+              }
             ++bad_frame_count;
-            if (nullptr != cb_failed) cb_failed(this, msg);
+            if (nullptr != cb_failed) cb_failed(this, e);
             return false;
         }
         ++frame_count;
@@ -412,9 +330,14 @@ AVStream* ffmpeg_rtp_encoder::make_vstream_w_defaults(AVFormatContext* afctx, AV
 
     if (NULL == st)
     {
-        ZMBCommon::MByteArrayPtr msg = make_mbytearray(__PRETTY_FUNCTION__);
-        (*msg) += "avformat_new_stream() returned NULL";
-        if (0 != cb_failed) cb_failed(this, msg);
+        auto e = std::string("avformat_new_stream() returned NULL");
+        if (0 != cb_failed) cb_failed(this, e);
+        if (nullptr == logChan)
+          return NULL;
+
+        Poco::Message _m;
+        _m.setSource(__PRETTY_FUNCTION__);
+        _m.setText(e);
         return NULL;
     }
 //    st->id = oc->nb_streams-1;
@@ -435,10 +358,16 @@ AVStream * ffmpeg_rtp_encoder::add_stream(AVFormatContext* fmt_ctx, AVCodec **co
     *codec = avcodec_find_encoder((AVCodecID)codec_id);
     if (NULL == (*codec))
     {
-        ZMBCommon::MByteArrayPtr msg = make_mbytearray(__PRETTY_FUNCTION__);
-        (*msg) += "avcodec_find_encoder() returned NULL";
-        if (0 != cb_failed) cb_failed(this, msg);
+        auto e = std::string("avcodec_find_encoder() returned NULL");
+        if (0 != cb_failed) cb_failed(this, e);
+        if (nullptr == logChan)
+          return NULL;
+
+        Poco::Message _m;
+        _m.setSource(__PRETTY_FUNCTION__);
+        _m.setText(e);
         return NULL;
+
     }
     AVStream *st = make_vstream_w_defaults(fmt_ctx, codec);
     AVCodecContext *c = st->codec;
@@ -488,7 +417,7 @@ void ffmpeg_rtp_encoder::set_vcodec_defaults(AVCodecContext* c, AVStream* st, gl
 
 struct TmpCSFuncCleaner
 {
-    typedef std::function<void(const ffmpeg_rtp_encoder*, ZMBCommon::MByteArrayPtr)> fail_fn_t;
+    typedef std::function<void(const ffmpeg_rtp_encoder*, const std::string&)> fail_fn_t;
     fail_fn_t cb_failed;
 
     TmpCSFuncCleaner(const ffmpeg_rtp_encoder* pff = 0, fail_fn_t fail_fn = nullptr)
@@ -504,7 +433,7 @@ struct TmpCSFuncCleaner
     {
         if (status < 0 && nullptr != cb_failed )
         {
-           cb_failed(ff, make_mbytearray(msg.to_const()));
+           cb_failed(ff, std::string(msg.begin(), msg.size()));
            assert(false);
         }
     }
@@ -534,9 +463,6 @@ int ffmpeg_rtp_encoder::create_stream(const AVFormatContext* src_ctx,
     d_rtp_ip = rtp_ip;
     d_rtp_port = rtp_port;
 
-
-    /* Initialize libavcodec, and register all codecs and formats. */
-    init_ffmpeg_libs();
 
     /* allocate the output media context */
     oc = avformat_alloc_context();
@@ -643,8 +569,6 @@ int ffmpeg_rtp_encoder::create_stream(ZConstString rtp_ip, u_int16_t rtp_port,
     d_rtp_port = rtp_port;
     d_encod_size = glm::ivec2(enc_width, enc_height);
 
-    /* Initialize libavcodec, and register all codecs and formats. */
-    init_ffmpeg_libs();
 
     /* allocate the output media context */
     oc = avformat_alloc_context();
@@ -676,7 +600,7 @@ int ffmpeg_rtp_encoder::create_stream(ZConstString rtp_ip, u_int16_t rtp_port,
     }
     else
     {
-        if (0 != cb_failed) cb_failed(this, make_mbytearray("FFmpeg add_stream() method failed."));
+        if (0 != cb_failed) cb_failed(this, std::string("FFmpeg add_stream() method failed."));
         return -1;
     }
 
@@ -685,7 +609,7 @@ int ffmpeg_rtp_encoder::create_stream(ZConstString rtp_ip, u_int16_t rtp_port,
         ret = avio_open(&oc->pb, oc->filename, AVIO_FLAG_WRITE);
         if (ret < 0)
         {
-            if (0 != cb_failed) cb_failed(this, make_mbytearray("FFmpeg avio_open() failed."));
+            if (0 != cb_failed) cb_failed(this, std::string("FFmpeg avio_open() failed."));
             return -1;
         }
     }
@@ -694,7 +618,7 @@ int ffmpeg_rtp_encoder::create_stream(ZConstString rtp_ip, u_int16_t rtp_port,
     ret = avformat_write_header(oc, NULL);
     if (ret < 0)
     {
-        if (0 != cb_failed) cb_failed(this, make_mbytearray("FFmpeg avformat_write_header() failed"));
+        if (0 != cb_failed) cb_failed(this, std::string("FFmpeg avformat_write_header() failed"));
         return -1;
     }
 
@@ -750,11 +674,10 @@ public:
     u_int32_t n_items;
 };
 
-ZMBCommon::MByteArrayPtr ffmpeg_rtp_encoder::make_rtp_settings_str(const Json::Value& jo)
+std::string ffmpeg_rtp_encoder::make_rtp_settings_str(const Json::Value& jo)
 {
-   ZMBCommon::MByteArrayPtr rtp_p = make_mbytearray();
-   ZMBCommon::MByteArray& rtp(*rtp_p);
-   rtp.reserve(256);
+   std::string rtp;
+   rtp.reserve(48 * 16);
 
    ZCArray16 strs;
    strs.append(ZCSTR("v=0\r\n"));
@@ -794,9 +717,11 @@ ZMBCommon::MByteArrayPtr ffmpeg_rtp_encoder::make_rtp_settings_str(const Json::V
        strs.append(ZConstString(ZCSTR("sprop"), &jo));
    }
    strs.append("\r\n");
-
-
-   return rtp_p;
+   for(unsigned c = 0; c < strs.n_items; ++c)
+     {
+       rtp.append(strs[c].begin());
+     }
+   return rtp;
 }
 
 ZConstString ffmpeg_rtp_encoder::get_sprop() const
@@ -1052,28 +977,26 @@ static char* extradata2psets(AVCodecContext *c)
 
 SHP(ZMB::FFileWriterBase) ffmpeg_rtp_encoder::write_file(const ZConstString& fname)
 {
-    AINFO(ZCSTR(__PRETTY_FUNCTION__));
     if (valid())
     {
         p_file_writer = std::make_shared<ZMB::FFileWriter>(oc, fname);
     }
     else
     {
-        LINFO(ZCSTR("ALL"), ZCSTR("write_file FAIL: stream is not ready yet."));
+//        LINFO(ZCSTR("ALL"), ZCSTR("write_file FAIL: stream is not ready yet."));
     }
     return p_file_writer;
 }
 
 void ffmpeg_rtp_encoder::stop_file()
 {
-    AINFO(ZCSTR(__PRETTY_FUNCTION__));
     if (nullptr != p_file_writer)
     {
         p_file_writer->close();
     }
     else
     {
-        AINFO(ZCSTR("stop_file FAIL: has not started."));
+//        AINFO(ZCSTR("stop_file FAIL: has not started."));
     }
 }
 
@@ -1087,3 +1010,5 @@ SHP(ZMB::FFileWriterBase) ffmpeg_rtp_encoder::cur_file() const
 {
    return p_file_writer;
 }
+
+}//namespace ZMB

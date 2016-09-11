@@ -17,7 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "ffilewriter.h"
 #include <string>
-#include "logservice.h"
 
 extern "C"
 {
