@@ -32,7 +32,7 @@ extern "C" {
 #include "zmbaq_common.h"
 #include "timingutils.h"
 #include "mbytearray.h"
-#include "jsoncpp/json/json.h"
+#include "json/json.h"
 #include "glm/vec2.hpp"
 
 #include "../packetspocket.h"

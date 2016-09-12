@@ -83,7 +83,7 @@ Packet::Packet(const uint8_t *data, size_t size, bool doAllign)
 
 Packet::~Packet()
 {
-    av_free_packet(&m_pkt);
+  av_packet_unref(&m_pkt);
 }
 
 void Packet::ctorInitCommon()
@@ -107,7 +107,7 @@ void Packet::ctorInitCommon()
 void Packet::ctorInitFromAVPacket(const AVPacket *packet)
 {
     assert(nullptr != packet && 0 < packet->size);
-    av_free_packet(&m_pkt);
+    av_packet_unref(&m_pkt);
     av_init_packet(&m_pkt);
     av_copy_packet(&m_pkt, const_cast<AVPacket*>(packet));
 

@@ -32,7 +32,7 @@ Json::Value jvalue_from_file(bool &ok, const ZConstString& fname)
     return cfg;
 }
 
-SurvlObj::SurvlObj(SHP(Poco::ThreadPool) pool, ZMB::SurvlObjectID obj_uid)
+SurvlObj::SurvlObj(SHP(ZMBCommon::ThreadsPool) pool, ZMB::SurvlObjectID obj_uid)
 {
     my_id = obj_uid;
     array_items_cnt = 0;
@@ -82,8 +82,10 @@ bool SurvlObj::create(const Json::Value* config_object)
 
     settings = config_object->operator [](ZM_OBJ_KW_SETTINGS.begin());
     {
-        std::pair<Json::Value*, SHP(ZMB::GenericLocker)> set_all = ZMB::Settings::instance()->get_all();
-        fn_fallback_fs_settings(&settings, set_all.first);
+      ZMB::Settings* S = ZMB::Settings::instance();
+      auto lk = S->getLocker();
+      Json::Value* all = S->getAll(lk);
+      fn_fallback_fs_settings(&settings, all);
     }
 
     ZMB::SurvlObjectID& id (my_id);

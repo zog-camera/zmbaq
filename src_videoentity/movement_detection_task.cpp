@@ -1,7 +1,6 @@
 #include "movement_detection_task.h"
 
 #include "src/sws_imgscaler.h"
-#include "logservice.h"
 
 extern "C"
 {
@@ -10,6 +9,9 @@ extern "C"
 #include <libavutil/imgutils.h>
 }
 
+#include <map>
+#include "Poco/Timespan.h"
+#include "Poco/Timestamp.h"
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/video/background_segm.hpp>
 
@@ -25,7 +27,6 @@ extern "C"
 
 #include <Poco/Timestamp.h>
 #include "src/zmbaq_common/mbytearray.h"
-#include "src/zmbaq_common/logservice.impl.h"
 #include <map>
 #include <iostream>
 #include "delaunay/Triangulation.h"
@@ -379,6 +380,8 @@ private:
 }//namespace CVBGS
 
 namespace ZMBEntities {
+
+using namespace ZMBCommon;
 
 class MovementDetector
 {

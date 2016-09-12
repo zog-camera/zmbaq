@@ -2,10 +2,8 @@
 
 namespace ZMBEntities {
 
-VEPV::VEPV(void* parent, SHP(Poco::ThreadPool) p_pool)
-    : master(parent), pool(p_pool)
+VEPV::VEPV(SHP(ZMBCommon::ThreadsPool) p_pool) : pool(p_pool)
 {
-    task_mgr = 0;
     file_dump = 0;
     stream = 0;
 }
@@ -21,29 +19,14 @@ void VEPV::clear()
         return;
 
     stream->stop();
-    file_dump->stop();
-    task_mgr->cancelAll();
-    task_mgr->joinAll();
-    delete task_mgr;
-
-    task_mgr = 0;
+    file_dump->close();
     file_dump = 0;
     stream = 0;
-
 }
 
-void VEPV::init()
+bool VEPV::configure(const Json::Value* jobject, bool do_start, std::shared_ptr<ZMBCommon::ThreadsPool> p_pool)
 {
-    if (nullptr == pool)
-    {
-        pool = std::make_shared<Poco::ThreadPool>();
-    }
-    task_mgr = new Poco::TaskManager(*pool);
-}
-
-bool VEPV::configure(const Json::Value* jobject, bool do_start)
-{
-    init();
+  pool = p_pool;
 
     ZConstString name(ZMB::SURV_CAM_PARAMS_NAME, jobject);
     ZConstString path(ZMB::SURV_CAM_PARAMS_PATH, jobject);
@@ -67,7 +50,8 @@ bool VEPV::configure(const Json::Value* jobject, bool do_start)
     if (ok)
     {
         _s = name.begin();
-        auto file_dump = new ZMBEntities::Mp4WriterTask(_s);
+        auto file_dump = new ZMBEntities::Mp4WriterTask();
+        file_dump->tag = _s;
         file_dump->open(stream->ff.get_format_ctx(), name, fs_helper);
         stream->file_pkt_q = file_dump;
         file_dump = file_dump;

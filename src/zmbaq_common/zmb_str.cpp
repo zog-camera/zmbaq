@@ -22,6 +22,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 namespace ZMBCommon {
 
+ZConstString bindZCTo(const std::string& str)
+{
+  return ZConstString(str.data(), str.size());
+}
+
 //=========================================
 ZConstString::ZConstString(const ZConstString& key, const Json::Value* jobject)
     : ZConstString((const char*)0, (const char*)0)

@@ -2,13 +2,15 @@
 #define SURVLOBJ_H
 
 #include "src/survcamparams.h"
-#include "src/zmbaq_common/cds_map.h"
+#include "zmbaq_common/thread_pool.h"
 #include "videoentity.h"
 #include <array>
 
 
 //-------------------------------------------------
 namespace ZMBEntities {
+
+using namespace ZMBCommon;
 
 ZM_DEF_STATIC_CONST_STRING(ZMQW_ROOT_URI, "/")
 ZM_DEF_STATIC_CONST_STRING(ZMQW_OBJECT_URI, "/object")
@@ -44,7 +46,7 @@ public:
     };
 
 
-    explicit SurvlObj(SHP(Poco::ThreadPool) pool = std::make_shared<Poco::ThreadPool>(),
+    explicit SurvlObj(SHP(ZMBCommon::ThreadsPool) pool = std::make_shared<ZMBCommon::ThreadsPool>(2),
                       ZMB::SurvlObjectID obj_uid = ZMB::SurvlObjectID());
 
     virtual ~SurvlObj();
@@ -71,7 +73,7 @@ public:
     /** ID issued for this object at it's creation.*/
     ZMB::SurvlObjectID id() const;
 
-    SHP(Poco::ThreadPool) pool;
+    SHP(ZMBCommon::ThreadsPool) pool;
 
 protected:
     ZMB::SurvlObjectID my_id;

@@ -23,38 +23,35 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #include <Poco/DirectoryIterator.h>
 
 namespace ZMFS {
-FSItem::FSItem(const FSItem& other)
-{
-    fname.len = other.fname.size();
-    fname.str = __fname;
-
-    fslocation = other.fslocation;
-    fname.imbue(other.fname.to_const());
-    fsize.store(other.fsize.load());
-}
 
 FSItem::FSItem(SHP(FSLocation) locat)
     : fslocation(locat)
 {
-    fname.len = 0;
-    fname.str = __fname;
 }
 
 FSItem::FSItem(const ZConstString& file_name, SHP(FSLocation) locat)
     : fslocation(locat)
 {
-    char* end = 0;
-    fname.len = file_name.len;
-    fname.read(&end, file_name);
-    assert(0 != end);
+    fname = std::move(std::string(file_name.begin(), file_name.size()));
+}
+
+FSItem::FSItem(const FSItem& other)
+{
+  fslocation = other.fslocation;
+  fname = other.fname;
+  fsize.store(other.fsize.load());
 }
 
 FSItem::~FSItem()
 {
-    if (0u < fname.size() && nullptr != fslocation
-            && FSLocation::FS_TEMP == fslocation->type)
+  if(nullptr != on_destruction)
     {
-        fslocation->fshelper->utilize(this);
+      on_destruction();
+    }
+  if (0u < fname.size() && nullptr != fslocation
+      && FSLocation::FS_TEMP == fslocation->type)
+    {
+      fslocation->fshelper->utilize(this);
     }
 }
 
@@ -66,18 +63,18 @@ void FSItem::to_json(Json::Value* jo)
     if (buf.size() < 1 + fname.size() + fslocation->location.size())
     {
         pbuf = new std::string();
-        fslocation->absolute_path(*pbuf, fname.to_const());
+        fslocation->absolute_path(*pbuf, ZConstString(fname.data(), fname.size()));
         buf.str = &pbuf->operator [](0);
         buf.len = pbuf->size();
     }
     else
     {
-        fslocation->absolute_path(&buf, fname.to_const());
+        fslocation->absolute_path(&buf, ZConstString(fname.data(), fname.size()));
     }
     Json::Value& val(*jo);
 
     val["path"] = Json::Value(buf.begin(), buf.end());
-    val["filename"] = Json::Value(fname.begin(), fname.end());
+    val["filename"] = Json::Value(fname);
     auto location_p = fslocation->location.data();
     val["location"] = Json::Value(location_p, location_p + fslocation->location.size());
     val["type"] = (int)fslocation->type;
@@ -154,7 +151,7 @@ public:
     void make_item_abspath(std::string& path, const FSItem* item)
     {
         assert(0 != item->fslocation.get());
-        item->fslocation->absolute_path(path, item->fname.to_const());
+        item->fslocation->absolute_path(path, ZConstString(item->fname.data(), item->fname.size()));
     }
     void assign_item_location(FSItem* item)
     {
@@ -209,21 +206,12 @@ void FSHelper::set_dirs(ZConstString permanent_dir, ZConstString temp_dir)
 
 SHP(FSItem) FSHelper::spawn_temp(const ZConstString& fname)
 {
-    auto item = std::make_shared<FSItem>(pv->temp_location);
-    //item->fname = location + fname;
-    char* end = 0;
-    item->fname.len = fname.size();
-    item->fname.read(&end, fname);
-    item->fname = ZUnsafeBuf(item->fname.begin(), end);
-    return item;
+    return std::make_shared<FSItem>(pv->temp_location);
 }
 
 SHP(FSItem) FSHelper::spawn_permanent(const ZConstString& fname)
 {
-    auto item = std::make_shared<FSItem>(pv->perm_location);
-    char* end = 0;
-    item->fname.read(&end, fname);
-    return item;
+    return std::make_shared<FSItem>(fname, pv->perm_location);
 }
 
 SHP(FSItem) FSHelper::store_permanently(const FSItem* item)

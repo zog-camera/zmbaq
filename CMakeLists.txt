@@ -47,7 +47,7 @@ endif()
 message("FFMPEG_DIR = ${FFMPEG_DIR}")
 if(FFMPEG_DIR)
     message("including: ${FFMPEG_DIR}/include")
-        include_directories(${FFMPEG_DIR}/include)
+        include_directories(${FFMPEG_DIR}/include ${FFMPEG_DIR}/glm)
         link_directories(${FFMPEG_DIR}/lib)
 endif()
 
@@ -94,7 +94,7 @@ target_link_libraries(zmbaq_common ${ASAN_LINK_FLAGS} ${PROF_LINK_FLAGS}
 # -lboost_system
 )
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/zmbaq_common)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/zmbaq_common)
 
 ##########################################3
 # libzmbaq : core library

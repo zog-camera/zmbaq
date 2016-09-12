@@ -35,7 +35,7 @@ namespace ZMB {
 class FFileWriterBase
 {
 public:
-    std::function<void(FFileWriterBase* fptr, const ZMBCommon::MByteArray& msg)>
+    std::function<void(FFileWriterBase* fptr, const std::string& msg)>
         sig_error;
 
     /** */
@@ -60,7 +60,7 @@ public:
 
     bool empty() const {return !is_open;}
     size_t file_size() const {return pb_file_size;}
-    const ZMBCommon::MByteArray& path() const {return dest;}
+    const std::string& path() const {return dest;}
 
     /** just holds the reference. May be NULL if true == empty().*/
     std::shared_ptr<ZMFS::FSItem> fs_item;
@@ -69,10 +69,10 @@ public:
 
     size_t pb_file_size;
 protected:
-    ZMBCommon::MByteArray dest;
+    std::string dest;
     bool is_open;
 
-    void dispatch_error(const ZMBCommon::MByteArray& msg)
+    void dispatch_error(const std::string& msg)
     {
         if (nullptr != sig_error)
             sig_error(this, msg);

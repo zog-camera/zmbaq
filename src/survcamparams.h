@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef SURVCAMPARAMS_H
 #define SURVCAMPARAMS_H
-#include "jsoncpp/json/json.h"
+#include "json/json.h"
 #include "zmbaq_common.h"
 #include "mbytearray.h"
 
@@ -44,7 +44,7 @@ struct SurvlObjectID
     ClientID  client_id;
     u_int32_t survlobj_id;
 
-    ZUnsafeBuf&& mem_accessor() const {return ZUnsafeBuf((char*)this, sizeof(*this));}
+    ZUnsafeBuf mem_accessor() const {return ZUnsafeBuf((char*)this, sizeof(*this));}
 };
 bool operator < (const ZMB::SurvlObjectID& one, const ZMB::SurvlObjectID& two);
 
@@ -56,7 +56,7 @@ struct VideoEntityID
     SurvlObjectID suo_id;
     u_int32_t id;
 
-    ZUnsafeBuf&& mem_accessor() const {return ZUnsafeBuf((char*)this, sizeof(*this));}
+    ZUnsafeBuf mem_accessor() const {return ZUnsafeBuf((char*)this, sizeof(*this));}
 
     /** Print fields in hex numbers grouped by 4bytes.
      * @param str: must have length >= sizeof(*this) * 2.25f;

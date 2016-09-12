@@ -70,25 +70,28 @@ class FSItem
 {
 public:
 
-    explicit FSItem(SHP(FSLocation) locat = 0);
-    FSItem(const FSItem& other);
+  explicit FSItem(SHP(FSLocation) locat = 0);
 
-    FSItem(const ZConstString& file_name, SHP(FSLocation) locat = 0);
+  /** will not copy on_destruction() callback, set it manually.*/
+  FSItem(const FSItem& other);
 
-    virtual ~FSItem();
 
-    /** Exports these fields to Json::Value:
+  FSItem(const ZConstString& file_name, SHP(FSLocation) locat = 0);
+
+  virtual ~FSItem();
+
+  std::function<void()> on_destruction;
+
+  /** Exports these fields to Json::Value:
      *  jo["path"] = "full path";
      *  jo["filename"] = "filename";
      *  jo["location"] = "/location";
      *  jo["type"] = "db" || "local" || "remote"; */
-    void to_json(Json::Value* jo);
+  void to_json(Json::Value* jo);
 
-    SHP(FSLocation) fslocation;
-    ZUnsafeBuf fname; //< in default constructor has 0-len, must be set.
-    char __fname[255];
-
-    std::atomic_ulong fsize;
+  SHP(FSLocation) fslocation;
+  std::string fname; //< in default constructor has 0-len, must be set.
+  std::atomic_ulong fsize;
 };
 //---------------------------------------------------------
 class FSHelper : public std::enable_shared_from_this<FSHelper>

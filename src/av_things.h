@@ -58,7 +58,7 @@ void init_ffmpeg_libs();
         {
             int got_picture = 0;
             yuv_frame = myav.decode_frame(got_picture, &pkt);
-            if(got_picture)
+            if(0 == got_picture)
             {
                 int av_pix_fmt = 0; glm::ivec2 dim(0,0);
                 AVPicture* pic = myav.frame(av_pix_fmt, dim);
@@ -107,10 +107,6 @@ public:
   */
     AVFrame* decode_frame(int& got_picture_indicator, AVPacket* pkt);
 
-    /** Get last decoded frame picture.
-     *  @result points to stack, do not free the data, it'll be done in destructor.*/
-    AVPicture* frame(int& av_pix_fmt, glm::ivec2& dim);
-
     void limit_output_img_size(glm::ivec2 size);
 
     /** Get fps in seconds*/
@@ -124,8 +120,6 @@ public:
 
     //decoded frame height
     int height() const;
-
-//    int bytes_per_line() const;
 
     //single mutex for all instances
     static pthread_mutex_t& mutex();

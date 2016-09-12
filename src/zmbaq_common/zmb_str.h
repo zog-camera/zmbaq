@@ -73,6 +73,8 @@ struct ZConstString
     Type type;
 
 };
+
+ZConstString bindZCTo(const std::string& str);
 //----
 struct ZUnsafeBuf
 {

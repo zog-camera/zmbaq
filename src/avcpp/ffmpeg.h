@@ -36,7 +36,6 @@ extern "C"
 #if LIBAVFILTER_VERSION_INT <= AV_VERSION_INT(2,77,100) // 0.11.1
 #  include <libavfilter/vsrc_buffer.h>
 #endif
-#include <libavfilter/avcodec.h>
 #include <libavfilter/buffersink.h>
 #include <libavfilter/buffersrc.h>
 }

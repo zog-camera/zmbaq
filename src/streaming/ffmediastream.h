@@ -23,7 +23,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <string>
 #include "zmbaq_common.h"
 #include "mbytearray.h"
-#include "jsoncpp/json/json.h"
+#include "json/json.h"
 #include <Poco/Net/IPAddress.h>
 #include "Poco/Channel.h"
 

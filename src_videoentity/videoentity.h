@@ -1,8 +1,8 @@
 #ifndef VIDEOENTITY_H
 #define VIDEOENTITY_H
 #include "zmbaq_common.h"
+#include "zmbaq_common/thread_pool.h"
 #include "src/survcamparams.h"
-#include <Poco/ThreadPool.h>
 #include "src/fshelper.h"
 #include <Poco/TaskManager.h>
 
@@ -19,7 +19,7 @@ class VideoEntity
 public:
     static bool is_cfg_viable(const Json::Value* jval);
 
-    explicit VideoEntity(SHP(Poco::ThreadPool) p_pool = nullptr);
+    explicit VideoEntity(SHP(ZMBCommon::ThreadsPool) p_pool = std::make_shared<ZMBCommon::ThreadsPool>(2));
     virtual ~VideoEntity();
     bool configure(const Json::Value* jobject, bool do_start = false);
     bool start();
@@ -33,7 +33,7 @@ public:
     ZMB::VideoEntityID id() const;
     //---------------------------------------------------------------
 protected:
-    SHP(Poco::ThreadPool) pool;
+    SHP(ZMBCommon::ThreadsPool) pool;
     SHP(VEPV) pv;
 };
 

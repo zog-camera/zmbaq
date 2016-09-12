@@ -11,25 +11,30 @@
 
 namespace ZMBEntities {
 
-class StreamReader : public Poco::Task
+class StreamReader
 {
 public:
-    av_things ff;
+  ZMB::av_things ff;
 
-    /** Must be set before the task will go running.*/
-    Mp4WriterTask* file_pkt_q;
+  /** Must be set before the task will go running.*/
+  Mp4WriterTask* file_pkt_q;
 
-    AVPacket pkt;
+  AVPacket pkt;
 
-    bool should_run;
+  bool should_run;
 
 
-    StreamReader(const std::string& name);
-    virtual ~StreamReader();
+  StreamReader(const std::string& name = "StreamReader0");
+  virtual ~StreamReader();
 
-    bool open(ZConstString url);
-    void stop();
-    virtual void runTask();
+  bool open(ZConstString url);
+  void stop();
+
+  //read one frame, write it syncronously
+  void rwSync();
+
+  //read one frame, write it in another thread
+  void rwAsync();
 };
 
 }

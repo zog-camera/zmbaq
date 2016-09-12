@@ -4,7 +4,7 @@
 
 namespace ZMBEntities {
 
-VideoEntity::VideoEntity(SHP(Poco::ThreadPool) p_pool)
+VideoEntity::VideoEntity(SHP(ZMBCommon::ThreadsPool) p_pool)
     : pool(p_pool)
 {
     pv = std::make_shared<VEPV>(this, pool);
@@ -37,7 +37,6 @@ bool VideoEntity::start()
 {
     if (0 != pv->stream)
     {
-        pv->task_mgr->start(pv->file_dump);
         pv->task_mgr->start(pv->stream);
         return true;
     }

@@ -69,8 +69,8 @@ struct av_things::impl
     //contais copy of pointers from av_frame
     AVPicture yuv_picture;
 
-    AVCodecContext* av_codec_ctx;
-    AVFormatContext* av_format_ctx;
+    AVCodecContext* codecContext;
+    AVFormatContext* formatContext;
 
     AVCodec* av_codec;
 
@@ -90,8 +90,8 @@ struct av_things::impl
 
         m_is_open = false;
         p_master = master;
-        av_codec_ctx = nullptr;
-        av_format_ctx = nullptr;
+        codecContext = nullptr;
+        formatContext = nullptr;
         av_codec = nullptr;
         av_frame = nullptr;
         v_stream_idx = 0;
@@ -116,11 +116,11 @@ struct av_things::impl
             av_frame_free(&av_frame);
         }
 
-        if (av_codec_ctx)
-            avcodec_close(av_codec_ctx);
+        if (codecContext)
+            avcodec_close(codecContext);
 
-        if (av_format_ctx != 0)
-            avformat_close_input(&av_format_ctx);
+        if (formatContext != 0)
+            avformat_close_input(&formatContext);
 
         m_is_open = false;
     }
@@ -134,17 +134,17 @@ struct av_things::impl
     int get_video_stream_and_codecs()
     {
         v_stream_idx = -1;
-        for (unsigned i = 0; i < av_format_ctx->nb_streams && v_stream_idx == -1; ++i)
+        for (unsigned i = 0; i < formatContext->nb_streams && v_stream_idx == -1; ++i)
         {
             /** TODO: add audio support here.**/
-            if (av_format_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+            if (formatContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
             {
                 v_stream_idx = i;
                 break;
             }
         }
 
-        if(v_stream_idx == -1 || v_stream_idx == av_format_ctx->nb_streams)
+        if(v_stream_idx == -1 || v_stream_idx == formatContext->nb_streams)
         {
             *this << ZCSTR("Can not find video line \n");
             return -1;
@@ -152,11 +152,11 @@ struct av_things::impl
         else
         {
             // get a pointer to the codec context for the video stream
-            av_codec_ctx = av_format_ctx->streams[v_stream_idx]->codec;
+            av_codec = avcodec_find_decoder(formatContext->streams[v_stream_idx]->codecpar->codec_id);
         }
 
         // find the decoder for the video stream
-        av_codec = avcodec_find_decoder(av_codec_ctx->codec_id);
+        av_codec = avcodec_find_decoder(codecContext->codec_id);
 
         if (av_codec == NULL)
         {
@@ -164,7 +164,7 @@ struct av_things::impl
             return -1;
         }
 
-        int err = avcodec_open2(av_codec_ctx, av_codec, NULL);
+        int err = avcodec_open2(codecContext, av_codec, NULL);
         if(err != 0)
         {
             std::string error_m = "Error! Can open codec: " + averror_to_string(err) + "\n";
@@ -190,35 +190,16 @@ struct av_things::impl
 
     AVFrame* decode_frame(int& got_picture_indicator, AVPacket* pkt)
     {
-        if(pkt->stream_index == v_stream_idx)
+      got_picture_indicator = EAGAIN;
+      if(pkt->stream_index == v_stream_idx)
         {
-            got_picture_indicator = 0;
-            int res = avcodec_decode_video2(av_codec_ctx, av_frame, &got_picture_indicator, pkt);
-            if (res < 0)
+          got_picture_indicator = avcodec_receive_frame(this->codecContext, av_frame);
+          if (got_picture_indicator < 0)
             {
-//                AERROR(averror_to_string(res));
-                p_master->reemit_ff_error(res);
-            }
-            else
-            {
-                if (got_picture_indicator)
-                {
-                    memcpy(yuv_picture.data, av_frame->data, sizeof(av_frame->data));
-                    memcpy(yuv_picture.linesize, av_frame->linesize, sizeof(av_frame->linesize));
-
-                    glm::ivec2 img_size(av_codec_ctx->width, av_codec_ctx->height);
-                    if (output_size_limit.x > 0 && output_size_limit.y > 0)
-                    {
-                        img_size.x = (ZMB::min<int>(img_size.x, output_size_limit.x));
-                        img_size.y = (ZMB::min<int>(img_size.y, output_size_limit.y));
-
-                        output_size_limit = img_size;
-                    }
-//                    qimg = scaler.scale(&yuv_picture, glm::ivec2(av_codec_ctx->width, av_codec_ctx->height), (int)av_codec_ctx->pix_fmt, img_size);
-                }
+              p_master->reemit_ff_error(got_picture_indicator);
             }
         }
-        return av_frame;
+      return av_frame;
     }
 };
 
@@ -244,7 +225,7 @@ void av_things::reemit_ff_error(int errl)
 
 int av_things::open(const ZConstString& url)
 {
-    int err = avformat_open_input(&pv->av_format_ctx, url.begin(), 0, 0);
+    int err = avformat_open_input(&pv->formatContext, url.begin(), 0, 0);
     if(err != 0)
     {
         auto e = averror_to_string(err);
@@ -256,7 +237,7 @@ int av_things::open(const ZConstString& url)
     }
     else
     {
-        err = avformat_find_stream_info(pv->av_format_ctx, NULL);
+        err = avformat_find_stream_info(pv->formatContext, NULL);
     }
 
     return err;
@@ -284,13 +265,13 @@ pthread_mutex_t& av_things::mutex()
 
 void av_things::read_play()
 {
-    av_read_play(pv->av_format_ctx);
+    av_read_play(pv->formatContext);
 }
 
 int av_things::read_frame(AVPacket* pkt)
 {
     assert(pkt != 0);
-    return av_read_frame(pv->av_format_ctx, pkt);
+    return av_read_frame(pv->formatContext, pkt);
 }
 
 AVFrame* av_things::decode_frame(int& got_picture_indicator, AVPacket* pkt)
@@ -298,46 +279,15 @@ AVFrame* av_things::decode_frame(int& got_picture_indicator, AVPacket* pkt)
     return pv->decode_frame(got_picture_indicator, pkt);
 }
 
-AVPicture* av_things::frame(int& av_pix_fmt, glm::ivec2& dim)
-{
-    av_pix_fmt = pv->av_frame->format;
-    dim = glm::ivec2(pv->av_frame->width, pv->av_frame->height);
-    //copy pointer arrays:
-    memcpy(pv->yuv_picture.data, pv->av_frame->data, sizeof(pv->av_frame->data));
-    memcpy(pv->yuv_picture.linesize, pv->av_frame->linesize, sizeof(pv->av_frame->linesize));
-    return &(pv->yuv_picture);
-}
-
-//u_int8_t* av_things::converted_frame(size_t& len) const
-//{
-//    if (nullptr != pv->qimg)
-//    {
-//        len = pv->qimg->byteCount();
-//        return pv->qimg->bits();
-//    }
-//    len = 0;
-//    return 0;
-//}
-
-//SHP(QImage) av_things::converted_frame() const
-//{
-//    return pv->qimg;
-//}
-
 int av_things::width() const
 {
-    return pv->av_codec_ctx->width;
+    return pv->codecContext->width;
 }
 
 int av_things::height() const
 {
-   return pv->av_codec_ctx->height;
+   return pv->codecContext->height;
 }
-
-//int av_things::bytes_per_line() const
-//{
-//   return pv->qimg->bytesPerLine();
-//}
 
 int av_things::vstream_index() const
 {
@@ -352,29 +302,29 @@ double r2d(const AVRational& r)
 double av_things::fps() const
 {
     static const double eps_zero = 0.000025;
-    double fps = r2d(pv->av_format_ctx->streams[pv->v_stream_idx]->r_frame_rate);
+    double fps = r2d(pv->formatContext->streams[pv->v_stream_idx]->r_frame_rate);
 
     if (fps < eps_zero)
     {
-        fps = r2d(pv->av_format_ctx->streams[pv->v_stream_idx]->avg_frame_rate);
+        fps = r2d(pv->formatContext->streams[pv->v_stream_idx]->avg_frame_rate);
     }
 
     if (fps < eps_zero)
     {
-        fps = 1.0 / r2d(pv->av_format_ctx->streams[pv->v_stream_idx]->codec->time_base);
+        fps = 1.0 / r2d(pv->formatContext->streams[pv->v_stream_idx]->time_base);
     }
     return fps;
 }
 
 AVFormatContext* av_things::get_format_ctx() const
 {
-   return pv->av_format_ctx;
+   return pv->formatContext;
 }
 
 const AVRational* av_things::get_timebase() const
 {
     assert(is_open());
-    return &pv->av_format_ctx->streams[pv->v_stream_idx]->time_base;
+    return &pv->formatContext->streams[pv->v_stream_idx]->time_base;
 }
 
 }//namespace ZMB

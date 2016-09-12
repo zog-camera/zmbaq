@@ -3,7 +3,7 @@
 
 namespace ZMBEntities {
 
-StreamReader::StreamReader(const std::string& name) : Poco::Task(name)
+StreamReader::StreamReader(const std::string& name)
 {
     memset(&pkt, 0, sizeof(pkt));
     av_init_packet(&pkt);
@@ -23,7 +23,7 @@ bool StreamReader::open(ZConstString url)
 
 StreamReader::~StreamReader()
 {
-    av_free_packet(&pkt);
+    av_packet_unref(&pkt);
     av_init_packet(&pkt);
 }
 
@@ -32,21 +32,32 @@ void StreamReader::stop()
     should_run = false;
 }
 
-void StreamReader::runTask()
+void StreamReader::rwSync()
 {
-    while (should_run)
+  int res = ff.read_frame(&pkt);
+  av::Rational tb(*ff.get_timebase());
+  if (res >= 0)
     {
-        int res = ff.read_frame(&pkt);
-        av::Rational tb(*ff.get_timebase());
-        if (res >= 0)
-        {
-            /*copy contents*/
-            auto avpkt = std::make_shared<av::Packet> ();
-            avpkt->deep_copy(&pkt);
-            avpkt->setTimeBase(tb);
-            assert(avpkt->getSize() > 0);
-            file_pkt_q->pkt_chan << avpkt;
-        }
+      /*copy contents*/
+      auto avpkt = std::make_shared<av::Packet> (&pkt);
+      avpkt->setTimeBase(tb);
+      assert(avpkt->getSize() > 0);
+      file_pkt_q->writeAsync(avpkt);
+    }
+}
+
+void StreamReader::rwAsync()
+{
+  int res = ff.read_frame(&pkt);
+  av::Rational tb(*ff.get_timebase());
+  if (res >= 0)
+    {
+      /*copy contents*/
+      auto avpkt = std::make_shared<av::Packet> ();
+      avpkt->deep_copy(&pkt);
+      avpkt->setTimeBase(tb);
+      assert(avpkt->getSize() > 0);
+      file_pkt_q->writeAsync(avpkt);
     }
 }
 

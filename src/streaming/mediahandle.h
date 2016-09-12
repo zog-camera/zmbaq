@@ -26,7 +26,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "mbytearray.h"
 #include "zmbaq_common.h"
-#include "jsoncpp/json/json.h"
+#include "json/json.h"
 
 namespace ZMFS {
     class FSItem;

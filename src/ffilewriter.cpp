@@ -111,11 +111,11 @@ struct FFileWriter::PV
 {
     PV(FFileWriter* parent, const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst)
         : d_parent(parent)
-        , av_out_fmt_ctx(nullptr)
-        , av_in_fmt_ctx(av_in_fmt_ctx)
+        , outFmtContext(nullptr)
+        , inFmtContext(av_in_fmt_ctx)
         , frame_cnt(0)
     {
-        parent->dest = dst;
+        parent->dest = std::move(std::string(dst.begin(), dst.size()));
         pts_shift = 0;
         dts_shift = 0;
         if (nullptr != av_in_fmt_ctx)
@@ -138,7 +138,7 @@ struct FFileWriter::PV
 
     bool open()
     {
-        ZMBCommon::MByteArray& dst(d_parent->dest);
+        std::string& dst(d_parent->dest);
         int errnum = 0;
 
         AVOutputFormat *av_out_fmt = av_guess_format(nullptr, /*filename*/dst.c_str(), nullptr);
@@ -150,21 +150,21 @@ struct FFileWriter::PV
             return false;
         }
 
-        av_out_fmt_ctx = avformat_alloc_context();
-        av_out_fmt_ctx->oformat = av_out_fmt;
+        outFmtContext = avformat_alloc_context();
+        outFmtContext->oformat = av_out_fmt;
 
-        if (!av_out_fmt_ctx)
+        if (!outFmtContext)
         {
             d_parent->dispatch_error("Could not create output context");
             return false;
         }
 
-        for (uint32_t i = 0; i < av_in_fmt_ctx->nb_streams; ++i)
+        for (uint32_t i = 0; i < inFmtContext->nb_streams; ++i)
         {
-            if (av_in_fmt_ctx->streams[i]->codec->codec_type == AVMEDIA_TYPE_VIDEO)
+            if (inFmtContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
             {
-                AVStream *in_stream = av_in_fmt_ctx->streams[i];
-                AVStream *out_stream = avformat_new_stream(av_out_fmt_ctx, in_stream->codec->codec);
+                AVStream *in_stream = inFmtContext->streams[i];
+                AVStream *out_stream = avformat_new_stream(outFmtContext, inFmtContext->video_codec);
 
                 if (!out_stream)
                 {
@@ -172,36 +172,15 @@ struct FFileWriter::PV
                     goto _on_fail_;
                 }
 
-                if ((errnum = avcodec_copy_context(out_stream->codec, in_stream->codec)) < 0)
-                {
-                    ZMBCommon::MByteArray msg("Failed allocating output stream");
-                    msg += error_to_string(errnum);
-                    d_parent->dispatch_error(msg);
-                    goto _on_fail_;
-                }
-
                 out_stream->time_base           = in_stream->time_base;
-                out_stream->codec->codec_id     = in_stream->codec->codec_id;
-                int codec_cpy_res = avcodec_copy_context(out_stream->codec, in_stream->codec);
-                if (codec_cpy_res < 0)
-                {
-                    avformat_free_context(av_out_fmt_ctx);
-                    av_out_fmt_ctx = 0;
-                    return false;
-                }
-
-                out_stream->sample_aspect_ratio = in_stream->sample_aspect_ratio;
-
-                if (av_out_fmt->flags & AVFMT_GLOBALHEADER)
-                {
-                    out_stream->codec->flags |= CODEC_FLAG_GLOBAL_HEADER;
-                }
+                out_stream->codecpar->codec_id     = in_stream->codecpar->codec_id;
+                out_stream->codecpar->sample_aspect_ratio = in_stream->codecpar->sample_aspect_ratio;
             }
         }
 
         if (!(av_out_fmt->flags & AVFMT_NOFILE))
         {
-            if (avio_open(&av_out_fmt_ctx->pb, dst.c_str(), AVIO_FLAG_WRITE) < 0)
+            if (avio_open(&outFmtContext->pb, dst.c_str(), AVIO_FLAG_WRITE) < 0)
             {
                 ZMBCommon::MByteArray msg("Could not open output: ");
                 msg += dst;
@@ -210,50 +189,50 @@ struct FFileWriter::PV
             }
         }
 
-        avformat_write_header(av_out_fmt_ctx, nullptr);
+        avformat_write_header(outFmtContext, nullptr);
 
 #ifndef NDEBUG
-        av_dump_format(av_out_fmt_ctx, 0, dst.c_str(), 1);
+        av_dump_format(outFmtContext, 0, dst.c_str(), 1);
 #endif
         return true;
 
 _on_fail_:
-        avformat_free_context(av_out_fmt_ctx);
+        avformat_free_context(outFmtContext);
         return false;
 
     }
 
     void close()
     {
-        if (nullptr != av_out_fmt_ctx)
+        if (nullptr != outFmtContext)
         {
-            if (!av_out_fmt_ctx->pb->error)
+            if (!outFmtContext->pb->error)
             {
-                av_write_trailer(av_out_fmt_ctx);
+                av_write_trailer(outFmtContext);
             }
 
-            if ((av_out_fmt_ctx->pb && !(av_out_fmt_ctx->oformat->flags & AVFMT_NOFILE)))
+            if ((outFmtContext->pb && !(outFmtContext->oformat->flags & AVFMT_NOFILE)))
             {
 
                 /* Free the stream codecs. */
-                for (unsigned i = 0; i < av_out_fmt_ctx->nb_streams; i++)
+                for (unsigned i = 0; i < outFmtContext->nb_streams; i++)
                 {
-                    avcodec_close(av_out_fmt_ctx->streams[i]->codec);
+                    avcodec_close(outFmtContext->streams[i]->codec);
                 }
 
-                avio_closep(&av_out_fmt_ctx->pb);
+                avio_closep(&outFmtContext->pb);
             }            
 
-            avformat_free_context(av_out_fmt_ctx);
-            av_out_fmt_ctx = nullptr;
+            avformat_free_context(outFmtContext);
+            outFmtContext = nullptr;
         }
     }
 
     void write(AVPacket* input_avpacket)
     {
-        assert (nullptr != av_in_fmt_ctx);
+        assert (nullptr != inFmtContext);
 
-        if (nullptr == av_out_fmt_ctx)
+        if (nullptr == outFmtContext)
         {
             bool ok = false;
             try {
@@ -266,13 +245,13 @@ _on_fail_:
             if (!ok) return;
         }
         int av_stream_idx = input_avpacket->stream_index;
-        const AVCodecContext *in_codec_ctx  = av_in_fmt_ctx->streams[av_stream_idx]->codec;
-        const AVCodecContext *out_codec_ctx = av_out_fmt_ctx->streams[0]->codec;
+        const AVCodecContext *in_codec_ctx  = inFmtContext->streams[av_stream_idx]->codec;
+        const AVCodecContext *out_codec_ctx = outFmtContext->streams[0]->codec;
 
         assert(in_codec_ctx->codec_id == out_codec_ctx->codec_id);
 
-        AVStream *in_stream  = av_in_fmt_ctx->streams[av_stream_idx];
-        AVStream *out_stream = av_out_fmt_ctx->streams[0];
+        AVStream *in_stream  = inFmtContext->streams[av_stream_idx];
+        AVStream *out_stream = outFmtContext->streams[0];
 
 
         if (0 == pts_shift)
@@ -308,7 +287,7 @@ _on_fail_:
          *  functions are called, they purge the packet's payload when done.*/
         d_parent->pb_file_size += opkt->size;
 
-        av_interleaved_write_frame(av_out_fmt_ctx, opkt);
+        av_interleaved_write_frame(outFmtContext, opkt);
 
         //restore some values:
         input_avpacket->pts += pts_shift;
@@ -322,8 +301,8 @@ _on_fail_:
 
     FFileWriter* d_parent;
 
-    AVFormatContext *av_out_fmt_ctx;
-    const AVFormatContext *av_in_fmt_ctx;
+    AVFormatContext *outFmtContext;
+    const AVFormatContext *inFmtContext;
     unsigned frame_cnt;
 
     int64_t pts_shift, dts_shift;

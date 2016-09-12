@@ -47,7 +47,7 @@ struct MSize : public glm::ivec2
   idx 1 [ y1    y2   ]
   @endverbatim
  */
-struct MRegion : public glm::detail::tmat2x2<int, glm::highp>
+struct MRegion : public glm::tmat2x2<int, glm::highp>
 {
     MRegion() : type(col_type(-1, 1), col_type(1, -1))
     { }
