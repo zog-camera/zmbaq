@@ -13,13 +13,13 @@ namespace ZMBEntities {
 class VEPV : public ZMB::noncopyable
 {
 public:
-    explicit VEPV(void* parent, SHP(ZMBCommon::ThreadsPool) p_pool);
+    explicit VEPV();
     virtual ~VEPV();
 
     void clear();
-    void init();
 
-    bool configure(const Json::Value* jobject, bool do_start);
+    bool configure(const Json::Value* jobject, bool do_start,
+                   SHP(ZMBCommon::ThreadsPool) p_pool = std::make_shared<ZMBCommon::ThreadsPool>());
 
     //----------------------------
     ZMB::SurvCamParams cam_param;
