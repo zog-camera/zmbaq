@@ -1,36 +1,43 @@
 #ifndef VIDEOENTITY_PV_H
 #define VIDEOENTITY_PV_H
-
-#include "zmbaq_common.h"
-#include "src/survcamparams.h"
-#include "zmbaq_common/thread_pool.h"
-#include "streamreader.h"
-#include "mp4writertask.h"
-#include "src/fshelper.h"
+#include "json/json.h"
 
 namespace ZMBEntities {
 
-class VEPV : public ZMB::noncopyable
+class VEPV;
+class VideoEntity;
+
+/** Make a a stream reader + mp4 file writer for the given video source.
+ * Will change VideoEnity::cleanupMethod() that will destruct resources.*/
+class VEMp4WritingVisitor
 {
 public:
-    explicit VEPV();
-    virtual ~VEPV();
 
-    void clear();
+  template<class T>
+  void visit(T entity, const Json::Value* jobject, bool separateThreadPool)
+  {
+    entity::accept<ZMBEntities::VideoEntity*, const Json::Value*, bool>(entity, this, jobject, separateThreadPool);
+  }
 
-    bool configure(const Json::Value* jobject, bool do_start,
-                   SHP(ZMBCommon::ThreadsPool) p_pool = std::make_shared<ZMBCommon::ThreadsPool>());
+  /** @param separateThreadPool: when TRUE the visitor will not submit tasks to VideoEntity::pool and will allocate it's own;
+   * on FALSE it will use VideoEntity::pool */
+  void visit(ZMBEntities::VideoEntity* entity, const Json::Value* jobject, bool separateThreadPool = true);
 
-    //----------------------------
-    ZMB::SurvCamParams cam_param;
-    SHP(ZMFS::FSHelper) fs_helper;
-
-    ZMBEntities::Mp4WriterTask* file_dump;
-    ZMBEntities::StreamReader* stream;
-
-    SHP(ZMBCommon::ThreadsPool) pool;
-
+  std::shared_ptr<VEPV> data;
 };
+
+class VECleanupVisitor
+{
+public:
+  template<class T>
+  void visit(T entity)
+  {
+    entity::accept<ZMBEntities::VideoEntity*>(entity, this);
+  }
+
+  void visit(ZMBEntities::VideoEntity* entity);
+};
+
 }//ZMBEntities
 
 #endif // VIDEOENTITY_PV_H

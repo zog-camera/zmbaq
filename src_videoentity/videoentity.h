@@ -9,32 +9,30 @@
 
 namespace ZMBEntities {
 
-class VEPV; //< private variables available via videoentity_pv.h
-
-class Mp4WriterTask;
-class StreamReader;
 
 class VideoEntity
 {
 public:
-    static bool is_cfg_viable(const Json::Value* jval);
+  typedef std::shared_ptr<ZMBCommon::ThreadsPool> TPoolPtr;
+  typedef std::pair<ZMB::SurvCamParams,Json::Value> ConfigPair_t;
 
-    explicit VideoEntity(SHP(ZMBCommon::ThreadsPool) p_pool = std::make_shared<ZMBCommon::ThreadsPool>(2));
-    virtual ~VideoEntity();
-    bool configure(const Json::Value* jobject, bool do_start = false);
-    bool start();
-    void stop();
-    bool reopen(bool do_start = false);//Re-open with previosly used config settings.
+  static bool is_cfg_viable(const Json::Value* jval);
 
-    const ZMB::SurvCamParams& params() const;
+  template<typename This, typename Visitor, typename ...TVarArgs>
+  static void accept(This t, Visitor v, TVarArgs...args)
+  {
+    if (t->cleanupMethod)
+      {
+        t->cleanupMethod();
+        t->cleanupMethod = nullptr;
+      }
+    v->visit(t,args...);
+  }
 
-    //---------------------------------------------------------------
-    void set_id(ZMB::VideoEntityID number);
-    ZMB::VideoEntityID id() const;
-    //---------------------------------------------------------------
-protected:
-    SHP(ZMBCommon::ThreadsPool) pool;
-    SHP(VEPV) pv;
+  ZMB::VideoEntityID entity_id;
+  std::function<ConfigPair_t()> getConfigFunction;
+  std::function<void()> cleanupMethod;
+  TPoolPtr pool;
 };
 
 }//ZMBEntities

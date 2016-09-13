@@ -4,6 +4,7 @@
 
 #include <fstream>
 #include <iostream>
+#include "videoentity_pv.h"
 
 //-------------------------------------------------
 namespace ZMBEntities {
@@ -50,8 +51,8 @@ void SurvlObj::clear()
 {
     for (auto it = ve_array.begin(); it != ve_array.end(); ++it)
     {
-        (*it).entity()->stop();
-        (*it).clear();
+        VECleanupVisitor _cleaner;
+        _cleaner.visit<VideoEntity*>((*it).entity());
     }
 }
 

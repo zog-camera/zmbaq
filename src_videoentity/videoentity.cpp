@@ -4,10 +4,8 @@
 
 namespace ZMBEntities {
 
-VideoEntity::VideoEntity(SHP(ZMBCommon::ThreadsPool) p_pool)
-    : pool(p_pool)
+VideoEntity::VideoEntity()
 {
-    pv = std::make_shared<VEPV>(this, pool);
 }
 
 VideoEntity::~VideoEntity()
@@ -17,12 +15,12 @@ VideoEntity::~VideoEntity()
 
 void VideoEntity::set_id(ZMB::VideoEntityID number)
 {
-    pv->cam_param.entity_id = number;
+    entity_id = number;
 }
 
 ZMB::VideoEntityID VideoEntity::id() const
 {
-   return pv->cam_param.entity_id;
+   return entity_id;
 }
 
 bool VideoEntity::configure(const Json::Value* jobject, bool do_start)
