@@ -76,7 +76,6 @@ bool VEPV::configure(const Json::Value* jobject, bool do_start, std::shared_ptr<
   ZConstString tmpfs(ZMB::SURV_CAM_PARAMS_TMPFS, jobject);
   fs_helper->set_dirs(fs, tmpfs);
 
-  auto cp_lock = cam_param.get_locker();
   cam_param.settings = *jobject;
 
   std::string _s (path.begin(), path.size());
@@ -101,23 +100,26 @@ bool VEPV::configure(const Json::Value* jobject, bool do_start, std::shared_ptr<
 
 }
 //------------------------------------------------------------------------
-void VEMp4WritingVisitor::visit(ZMBEntities::VideoEntity* entity, const Json::Value* jobject, bool separateThreadPool)
+bool VEMp4WritingVisitor::visit(ZMBEntities::VideoEntity* entity, const Json::Value* jobject, bool separateThreadPool)
 {
+  VideoEntity::accept<VEMp4WritingVisitor> (entity, *this);
+
   data = std::shared_ptr<VEPV>();
   data->e_id = entity->entity_id;
-  data->configure(jobject, true, separateThreadPool? make_shared<ZMBCommon::ThreadsPool>(2) : entity->pool);
+  data->configure(jobject, true, separateThreadPool?
+                    std::make_shared<ZMBCommon::ThreadsPool>(2) : entity->pool);
 
-  entity->getConfigFunction = [data](){ return ConfigPair_t(data->cam_param, data->config); };
-  entity->cleanupMethod = [data](){ data->clear(); };
+  entity->getConfigFunction = [=](){ return VideoEntity::ConfigPair_t(data->cam_param, data->config); };
+  entity->cleanupMethod = [=](){ data->clear(); };
+  return true;
 }
 //------------------------------------------------------------------------
-void VECleanupVisitor::visit(ZMBEntities::VideoEntity* entity)
+bool VECleanupVisitor::visit(ZMBEntities::VideoEntity* entity)
 {
-  if (entity->cleanupMethod)
-    {
-      entity->cleanupMethod();
-      entity->cleanupMethod = nullptr;
-    }
+  VideoEntity::accept<VECleanupVisitor> (entity, *this);
+
+  //do nothing, it'll make sure previous setup was cleared
+  return true;
 }
 //------------------------------------------------------------------------
 }//ZMBEntities

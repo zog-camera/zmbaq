@@ -52,13 +52,14 @@ void SurvlObj::clear()
     for (auto it = ve_array.begin(); it != ve_array.end(); ++it)
     {
         VECleanupVisitor _cleaner;
-        _cleaner.visit<VideoEntity*>((*it).entity());
+        _cleaner.visit((*it).entity().get());
     }
 }
 
 
 bool SurvlObj::create(const Json::Value* config_object)
 {
+  //set up defaults if some important values are missing:
     static auto fn_fallback_fs_settings = [](Json::Value* dest, const Json::Value* src)
             -> bool/*true if the permanent storage location was modified*/
     {
@@ -147,22 +148,21 @@ SHP(ZMBEntities::VideoEntity) SurvlObj::spawn_entity(bool& is_ok, const Json::Va
         is_ok = false;
         return en;
     }
-    en = std::make_shared<ZMBEntities::VideoEntity>(pool);
+    en = std::make_shared<ZMBEntities::VideoEntity>();
 
     is_ok = true;
     if (do_create)
     {
-        is_ok = en->configure(jo);
+        VEMp4WritingVisitor mp4writer;
+        is_ok = mp4writer.visit(en.get(), jo);
         if (!is_ok)
         {
-            //                auto msg = make_mbytearray(__PRETTY_FUNCTION__);
+            //                auto msg = std::string(__PRETTY_FUNCTION__);
             //                (*msg) += " Wrong configuration JSON!";
             //                emit sig_error(shared_from_this(), msg);
             return SHP(ZMBEntities::VideoEntity)(nullptr);
         }
         bind_entity(en);
-        // start the processing threads of the entity:
-        en->start();
     }
     return en;
 }
@@ -171,12 +171,12 @@ void SurvlObj::bind_entity(SHP(ZMBEntities::VideoEntity) ve)
 {
     //------------------------------------------------
     /** TODO: ASSIGN THE VIDEOENTITY ID FROM SAVED SETTINGS.**/
-    auto veid = ve->id();
+    auto veid = ve->entity_id;
     veid.suo_id = this->id();
     veid.id = array_items_cnt;
 
     //copy VideoEntity id to params:
-    ve->set_id(veid);
+    ve->entity_id = veid;
     ve_array.at(array_items_cnt) = IDEntityPair(veid, ve);
     ++array_items_cnt;
     //------------------------------------------------

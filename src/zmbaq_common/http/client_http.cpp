@@ -6,7 +6,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <exception>
-#include "linked_task.h"
+#include "../linked_task.h"
 
 namespace WebGrep {
 
@@ -60,7 +60,7 @@ std::string Client::connect(const std::string& httpURL)
   for(unsigned c = 0; c < 5; ++c)
     ctx->scheme[c] = std::tolower(ctx->scheme[c]);
 
-  ctx->host_and_port = ExtractHostPortHttp(httpURL);
+  ctx->host_and_port = ZMBCommon::ExtractHostPortHttp(httpURL);
   ctx->port = ctx->isHttps() ? 443 : 80;
   ne_session* ne = nullptr;
   auto pos = ctx->host_and_port.find_first_of(':');

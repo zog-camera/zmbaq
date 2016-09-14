@@ -32,11 +32,6 @@ RtspDumpApp::RtspDumpApp()
     sigaction(SIGINT, &action, NULL);
     action.sa_handler = &app_terminate;
 
-    pool = std::make_shared<Poco::ThreadPool>();
-    Json::Value logset = logservice::ldefaults();
-    logset[ZMBCommon::GSW_KW_SOCKET.begin()] = ZMBCommon::GSW_PRINTF.begin();
-    logservice::instance((const Json::Value*)&logset);
-
     argc = 0;
     argv = nullptr;
 }
@@ -88,7 +83,7 @@ bool RtspDumpApp::start_with_args()
         return false;
     }
     bool ok = false;
-    Json::Value cfg = ZMBEntities::jvalue_from_file(ok, ZConstString(argv[1]));
+    Json::Value cfg = ZMBEntities::jvalue_from_file(ok, ZMBCommon::ZConstString(argv[1]));
 
     if (!ok)
     {
@@ -96,7 +91,7 @@ bool RtspDumpApp::start_with_args()
         return false;
     }
 
-    suo = ZMBEntities::SurvlObj(pool);
+    suo = ZMBEntities::SurvlObj();
     ok = suo.create((const Json::Value*)&cfg);
 
     if (!ok)

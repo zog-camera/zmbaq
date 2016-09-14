@@ -6,7 +6,7 @@
 #include <memory>
 #include <cstring>
 #include <cassert>
-#include "noncopyable.hpp"
+#include "../noncopyable.hpp"
 
 extern "C" {
 #include <neon/ne_session.h>
@@ -29,7 +29,7 @@ public:
 };
 
 /** libneon ne_session holder*/
-class ClientCtx : public WebGrep::noncopyable
+class ClientCtx : public ZMBCommon::noncopyable
 {
 public:
   ClientCtx() : sess(nullptr), port(0) {

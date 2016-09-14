@@ -104,7 +104,8 @@ public:
 
     enum ImgOrientation{Default, ROTATE_90, ROTATE_180, ROTATE_270};
 
-    SurvCamParams();
+    SurvCamParams() = default;
+    SurvCamParams(const SurvCamParams&) = default;
 
     /**set RTP_settings that shall be exported as.
      * {"RTP":{"server":"127.0.0.1"; "port":"9002"}} */
@@ -118,11 +119,6 @@ public:
     ZConstString find(const ZConstString& key) const;
     Json::Value const* set(const ZConstString& key, const ZConstString& val);
     Json::Value const* set(const ZConstString& key, int val);
-
-    std::unique_lock<std::mutex>&& get_locker()
-    {return std::move(std::unique_lock<std::mutex>(mu)); }
-
-    std::mutex mu; //< locked manually or via GenericLocker
 
     /** Used only in runtime (no export),
      * updated within client/server negotiation. */

@@ -51,9 +51,8 @@
 
 URHO3D_DEFINE_APPLICATION_MAIN(ZMGUI::App)
 
-#include "jsoncpp/json/reader.h"
-#include "src/zmbaq_common/logservice.h"
-#include "src/zmbaq_common/zmb_str.h"
+#include "json/reader.h"
+#include "zmbaq_common/zmb_str.h"
 
 namespace ZMGUI {
 
@@ -92,19 +91,19 @@ void App::Start()
             if (arg_str.Contains(ext_json))
             {
                 bool ok = false;
-                cfg = ZMBEntities::jvalue_from_file(ok, ZConstString(arg_str.CString(), arg_str.Length()));
-                suo = ZMBEntities::SurvlObj(pool);
+                cfg = ZMBEntities::jvalue_from_file(ok, ZMBCommon::ZConstString(arg_str.CString(), arg_str.Length()));
+                suo = ZMBEntities::SurvlObj();
                 ok = suo.create((const Json::Value*)&cfg);
 
                 if (!ok)
                 {
-                    AERROR(ZCSTR("Failed to open/parse JSON config file\n"));
+//                    AERROR(ZCSTR("Failed to open/parse JSON config file\n"));
                     return;
                 }
                 break;
             }
         }
-        AERROR(ZCSTR("No input config file provided.\n"));
+//        AERROR(ZCSTR("No input config file provided.\n"));
     }
 }
 
@@ -258,7 +257,7 @@ void App::HandleKeyDown(StringHash eventType, VariantMap& eventData)
     // Unlike the other samples, exiting the engine when ESC is pressed instead of just closing the console
     int kint = eventData[KeyDown::P_KEY].GetInt();
     switch (kint) {
-    case KEY_ESC:
+    case KEY_ESCAPE:
         console->Toggle();
         break;
 //    case (int)'~':

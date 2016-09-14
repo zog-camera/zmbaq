@@ -28,7 +28,7 @@ extern "C"
 #include <unistd.h>
 }
 
-#include "jsoncpp/json/value.h"
+#include "json/value.h"
 #include <fstream>
 #include <iostream>
 
@@ -39,7 +39,6 @@ extern "C"
 #include <Poco/Mutex.h>
 
 //#include "src/noteinfo.h"
-#include "src/zmbaq_common/logservice.h"
 #include "src_videoentity/survlobj.h"
 
 namespace StreamDumper {
@@ -74,7 +73,6 @@ protected:
     //-------------------------------------------------
     //-----------
     ZMBEntities::SurvlObj suo;
-    SHP(Poco::ThreadPool) pool;
 
     Poco::FastMutex stop_cond_mutex;
     Poco::Condition stop_condition;

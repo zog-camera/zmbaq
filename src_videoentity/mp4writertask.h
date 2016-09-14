@@ -21,7 +21,6 @@ struct _Mp4TaskPriv
   _Mp4TaskPriv() : av_ctx(nullptr) {
     defaultChunkSize.store(64 * 1024 * 1024);
   }
-  virtual ~_Mp4TaskPriv();
 
   SHP(ZMFS::FSHelper) fs_helper;
   SHP(ZMFS::FSItem) file;

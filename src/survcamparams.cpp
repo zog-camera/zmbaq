@@ -59,9 +59,6 @@ bool VideoEntityID::operator () (const VideoEntityID& one, const VideoEntityID& 
     return one.id < two.id;
 }
 
-SurvCamParams::SurvCamParams()
-{
-}
 
 void SurvCamParams::set_rtp(const ZMBCommon::MByteArray& server, u_int16_t port)
 {

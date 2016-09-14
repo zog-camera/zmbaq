@@ -87,7 +87,6 @@ private:
     SharedPtr<ZMGUI::CommandsInterpreter> cmd_interpet;
 
     ZMBEntities::SurvlObj suo; //< video survl. object
-    SHP(Poco::ThreadPool) pool; // threads pool
 
 };
 }//nm ZMGUI

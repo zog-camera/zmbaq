@@ -55,6 +55,10 @@ if(ZMQ_DIR)
         include_directories(${ZMQ_DIR}/include)
         link_directories(${ZMQ_DIR}/lib)
 endif()
+if(URHO3D_DIR)
+    include_directories(${URHO3D_DIR}/include/Urho3D/ThirdParty ${URHO3D_DIR}/include/Urho3D/ThirdParty/SDL)
+
+endif()
 
 find_library(JPEG_LIB NAMES jpeg libjpeg.a
         PATHS ${FFMPEG_DIR} ${FFMPEG_DIR}/lib

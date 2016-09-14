@@ -18,16 +18,17 @@ public:
 
   static bool is_cfg_viable(const Json::Value* jval);
 
-  template<typename This, typename Visitor, typename ...TVarArgs>
-  static void accept(This t, Visitor v, TVarArgs...args)
+  //must be called from visit() method of the visitor
+  template<typename Visitor, typename ...TVarArgs>
+  static void accept(VideoEntity* e, Visitor& v, TVarArgs...args)
   {
-    if (t->cleanupMethod)
-      {
-        t->cleanupMethod();
-        t->cleanupMethod = nullptr;
-      }
-    v->visit(t,args...);
+    e->cleanAndClear();
   }
+  //use cleanupMethod() and set it nullptr
+  void cleanAndClear();
+
+  VideoEntity() = default;
+  VideoEntity(const VideoEntity&) = default;
 
   ZMB::VideoEntityID entity_id;
   std::function<ConfigPair_t()> getConfigFunction;

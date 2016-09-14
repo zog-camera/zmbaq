@@ -190,7 +190,7 @@ void Sample::HandleKeyDown(StringHash eventType, VariantMap& eventData)
     int key = eventData[P_KEY].GetInt();
 
     // Close console (if open) or exit when ESC is pressed
-    if (key == KEY_ESC)
+    if (key == KEY_ESCAPE)
     {
         Console* console = GetSubsystem<Console>();
         if (console->IsVisible())
@@ -207,7 +207,7 @@ void Sample::HandleKeyDown(StringHash eventType, VariantMap& eventData)
     else if (key == KEY_F2)
     {
         DebugHud* debugHud = GetSubsystem<DebugHud>();
-        if (debugHud->GetMode() == 0 || debugHud->GetMode() == DEBUGHUD_SHOW_ALL_MEMORY)
+        if (debugHud->GetMode() == 0 || debugHud->GetMode() == DEBUGHUD_SHOW_MEMORY)
             debugHud->SetMode(DEBUGHUD_SHOW_ALL);
         else
             debugHud->SetMode(DEBUGHUD_SHOW_NONE);
@@ -216,7 +216,7 @@ void Sample::HandleKeyDown(StringHash eventType, VariantMap& eventData)
     {
         DebugHud* debugHud = GetSubsystem<DebugHud>();
         if (debugHud->GetMode() == 0 || debugHud->GetMode() == DEBUGHUD_SHOW_ALL)
-            debugHud->SetMode(DEBUGHUD_SHOW_ALL_MEMORY);
+            debugHud->SetMode(DEBUGHUD_SHOW_MEMORY);
         else
             debugHud->SetMode(DEBUGHUD_SHOW_NONE);
     }
