@@ -1,9 +1,9 @@
 #ifndef STREAMREADER_H
 #define STREAMREADER_H
-#include "zmbaq_common.h"
+#include "../src/zmbaq_common/zmbaq_common.h"
 #include <Poco/Task.h>
 #include <Poco/TaskManager.h>
-#include "src/av_things.h"
+#include "../src/av_things.h"
 #include <atomic>
 
 #include "mp4writertask.h"

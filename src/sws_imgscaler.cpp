@@ -16,7 +16,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 
 #include "sws_imgscaler.h"
-#include "mbytearray.h"
 
 extern "C" {
     #include <libswscale/swscale.h>

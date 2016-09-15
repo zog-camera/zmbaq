@@ -39,7 +39,7 @@ extern "C"
 #include <Poco/Mutex.h>
 
 //#include "src/noteinfo.h"
-#include "src_videoentity/survlobj.h"
+#include "../src_videoentity/survlobj.h"
 
 namespace StreamDumper {
 

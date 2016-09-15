@@ -19,7 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef PACKETSPOCKET_H
 #define PACKETSPOCKET_H
-#include "zmbaq_common.h"
+#include "zmbaq_common/zmbaq_common.h"
 #include "zmbaq_common/timingutils.h"
 #include <deque>
 

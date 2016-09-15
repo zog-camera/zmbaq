@@ -1,7 +1,7 @@
 #include "commandsintepreter.h"
 #include <Urho3D/IO/Log.h>
 #include <Urho3D/Engine/Console.h>
-#include "src/zmbaq_common/zmb_str.h"
+#include "zmbaq_common/zmb_str.h"
 
 namespace ZMGUI
 {

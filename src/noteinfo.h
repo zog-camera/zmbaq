@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef NOTEINFO_H
 #define NOTEINFO_H
 #include <Poco/DateTime.h>
-#include "zmbaq_common.h"
+#include "zmbaq_common/zmbaq_common.h"
 #include "survcamparams.h"
 
 namespace ZMFS {

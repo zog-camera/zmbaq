@@ -1,9 +1,9 @@
 #ifndef VIDEOENTITY_H
 #define VIDEOENTITY_H
-#include "zmbaq_common.h"
-#include "zmbaq_common/thread_pool.h"
-#include "src/survcamparams.h"
-#include "src/fshelper.h"
+#include "../src/zmbaq_common/zmbaq_common.h"
+#include "../src/zmbaq_common/thread_pool.h"
+#include "../src/survcamparams.h"
+#include "../src/fshelper.h"
 #include <Poco/TaskManager.h>
 
 

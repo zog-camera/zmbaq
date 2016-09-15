@@ -1,8 +1,8 @@
 #ifndef SURVLOBJ_H
 #define SURVLOBJ_H
 
-#include "src/survcamparams.h"
-#include "zmbaq_common/thread_pool.h"
+#include "../src/survcamparams.h"
+#include "../src/zmbaq_common/thread_pool.h"
 #include "videoentity.h"
 #include <array>
 

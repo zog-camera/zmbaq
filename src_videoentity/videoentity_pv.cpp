@@ -1,9 +1,10 @@
-#include "zmbaq_common.h"
-#include "src/survcamparams.h"
+#include "survcamparams.h"
+
+#include "zmbaq_common/zmbaq_common.h"
 #include "zmbaq_common/thread_pool.h"
 #include "streamreader.h"
 #include "mp4writertask.h"
-#include "src/fshelper.h"
+#include "fshelper.h"
 
 
 #include "videoentity_pv.h"

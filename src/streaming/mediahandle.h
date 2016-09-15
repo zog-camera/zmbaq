@@ -24,8 +24,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <Poco/Net/IPAddress.h>
 #include "Poco/Channel.h"
 
-#include "mbytearray.h"
-#include "zmbaq_common.h"
+#include "zmbaq_common/mbytearray.h"
+#include "zmbaq_common/zmbaq_common.h"
 #include "json/json.h"
 
 namespace ZMFS {

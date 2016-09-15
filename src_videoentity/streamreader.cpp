@@ -1,5 +1,5 @@
 #include "streamreader.h"
-#include "src/avcpp/packet.h"
+#include "../src/avcpp/packet.h"
 
 namespace ZMBEntities {
 

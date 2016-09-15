@@ -15,11 +15,11 @@ target_compile_features(ZMBCommon PUBLIC cxx_constexpr)
 find_library(JSON_LIB
         NAMES jsoncpp
         PATH_SUFFIXES shared static
-        PATHS ${JSON_PATH} ${JSON_PATH}/lib
+        PATHS ${DEPENDS_ROOT} ${DEPENDS_ROOT}/lib
         NO_SYSTEM_ENVIRONMENT_PATH
         NO_CMAKE_SYSTEM_PATH
         NO_DEFAULT_PATH)
-include_directories(${FFMPEG_DIR}/include/jsoncpp)
+include_directories(${DEPENDS_ROOT}/include ${DEPENDS_ROOT}/include/jsoncpp)
 message(STATUS "libjsoncpp: ${JSON_LIB}")
 
 

@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define IMGSCALER_H
 #include <memory>
 #include "mimage.h"
-#include "zmbaq_common.h"
+#include "zmbaq_common/zmbaq_common.h"
 #include <functional>
 
 extern "C" {

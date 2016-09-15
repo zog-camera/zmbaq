@@ -20,8 +20,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef SURVCAMPARAMS_H
 #define SURVCAMPARAMS_H
 #include "json/json.h"
-#include "zmbaq_common.h"
-#include "mbytearray.h"
+#include "zmbaq_common/zmbaq_common.h"
+#include "zmbaq_common/mbytearray.h"
 
 namespace ZMB {
 
@@ -109,7 +109,7 @@ public:
 
     /**set RTP_settings that shall be exported as.
      * {"RTP":{"server":"127.0.0.1"; "port":"9002"}} */
-    void set_rtp(const ZMBCommon::MByteArray& server, u_int16_t port);
+    void set_rtp(const std::string& server, u_int16_t port);
 
 
     bool is_empty() const;

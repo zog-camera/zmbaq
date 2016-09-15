@@ -60,9 +60,9 @@ bool VideoEntityID::operator () (const VideoEntityID& one, const VideoEntityID& 
 }
 
 
-void SurvCamParams::set_rtp(const ZMBCommon::MByteArray& server, u_int16_t port)
+void SurvCamParams::set_rtp(const std::string& server, u_int16_t port)
 {
-   RTP_settings["server"] = server.to_jvalue();
+   RTP_settings["server"] = server;
    RTP_settings["port"] = (int)port;
 }
 

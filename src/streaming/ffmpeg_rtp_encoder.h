@@ -29,9 +29,9 @@ extern "C" {
 }
 #include "Poco/Channel.h"
 #include <functional>
-#include "zmbaq_common.h"
-#include "timingutils.h"
-#include "mbytearray.h"
+#include "zmbaq_common/zmbaq_common.h"
+#include "zmbaq_common/timingutils.h"
+#include "zmbaq_common/mbytearray.h"
 #include "json/json.h"
 #include "glm/vec2.hpp"
 

@@ -22,9 +22,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <memory>
 #include <string>
-#include "zmbaq_common/mbytearray.h"
 #include "packetspocket.h"
-#include "src/fshelper.h"
+#include "fshelper.h"
 
 struct AVFormatContext;
 

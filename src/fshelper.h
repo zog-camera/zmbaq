@@ -19,8 +19,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef FSHELPER_H
 #define FSHELPER_H
-#include "zmbaq_common.h"
-#include "mbytearray.h"
+#include "zmbaq_common/zmbaq_common.h"
+#include "zmbaq_common/mbytearray.h"
 #include <atomic>
 #include "Poco/Channel.h"
 

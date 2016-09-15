@@ -4,7 +4,7 @@
 #include <functional>
 #include <memory>
 #include <Poco/Task.h>
-#include "src/mimage.h"
+#include "../src/mimage.h"
 
 namespace ZMBEntities {
 

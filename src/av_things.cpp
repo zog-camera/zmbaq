@@ -19,7 +19,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #include <iostream>
 //#include <QImage>
 //#include "sws_imgscaler.h"
-#include "mbytearray.h"
 #include <pthread.h>
 
 extern "C" {

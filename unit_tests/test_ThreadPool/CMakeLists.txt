@@ -12,6 +12,6 @@ if(DO_MEMADDR_SANITIZE)
     target_link_libraries(submission_test -lasan)
 endif()
 target_compile_features(submission_test PUBLIC cxx_constexpr)
-target_link_libraries(submission_test webgrep)
+target_link_libraries(submission_test ZMBCommon)
 
 

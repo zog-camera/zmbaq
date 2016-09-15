@@ -1,6 +1,6 @@
 #include "movement_detection_task.h"
 
-#include "src/sws_imgscaler.h"
+#include "../src/sws_imgscaler.h"
 
 extern "C"
 {
@@ -26,7 +26,7 @@ extern "C"
 #endif
 
 #include <Poco/Timestamp.h>
-#include "src/zmbaq_common/mbytearray.h"
+#include "../src/zmbaq_common/mbytearray.h"
 #include <map>
 #include <iostream>
 #include "delaunay/Triangulation.h"

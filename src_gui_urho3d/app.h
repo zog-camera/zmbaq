@@ -26,8 +26,8 @@
 #include "commandsintepreter.h"
 #include "console.h"
 
-#include "src/zmbaq_common/zmbaq_common.h"
-#include "src_videoentity/survlobj.h"
+#include "zmbaq_common/zmbaq_common.h"
+#include "../src_videoentity/survlobj.h"
 #include <Poco/ThreadPool.h>
 
 namespace Urho3D

@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 
 #include "packetspocket.h"
-#include "src/avcpp/packet.h"
+#include "avcpp/packet.h"
 #include "ffilewriter.h"
 
 namespace ZMB {

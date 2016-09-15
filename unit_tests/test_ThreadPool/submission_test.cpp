@@ -1,5 +1,5 @@
-#include "webgrep/thread_pool.h"
-#include "webgrep/linked_task.h"
+#include "zmbaq_common/thread_pool.h"
+#include "zmbaq_common/linked_task.h"
 #include <list>
 #include <chrono>
 #include "submission_test.h"
@@ -11,9 +11,8 @@ int main(int argc, char** argv)
 }
 
 namespace ThreadPoolTests {
+  using namespace ZMBCommon;
 //=============================================================================
-
-using namespace WebGrep;
 
 //helper class for test1() : linked list with functors
 class LList : public std::enable_shared_from_this<LList>
@@ -32,7 +31,7 @@ public:
       };
   }
   uint32_t idx;
-  WebGrep::CallableDoubleFunc dfunc;
+  ZMBCommon::CallableDoubleFunc dfunc;
   std::shared_ptr<LList> next;
   std::atomic_uint* pref;
 };
@@ -54,7 +53,7 @@ public:
     list_cur_ptr = head;
 
     uint32_t cnt = 0;
-    WebGrep::ForEachOnBranch(ltask.get(),
+    ZMBCommon::ForEachOnBranch(ltask.get(),
                              [&cnt, this](LinkedTask*)
     {
         list_cur_ptr->next = std::make_shared<LList>(g_cnt, 1000 + (++cnt));
@@ -72,7 +71,7 @@ public:
     list_cur_ptr = head;
 
     //the iterator functor:
-    ifunc = [this](WebGrep::CallableDoubleFunc** pptr, size_t*, size_t) -> bool
+    ifunc = [this](ZMBCommon::CallableDoubleFunc** pptr, size_t*, size_t) -> bool
     {//a functor that is iteration interface on LList class items
       if (nullptr != list_cur_ptr->next)
         {
@@ -88,10 +87,10 @@ public:
 
   bool result;
   std::atomic_uint g_cnt;
-  std::shared_ptr<WebGrep::LinkedTask> ltask;
+  std::shared_ptr<ZMBCommon::LinkedTask> ltask;
   size_t spawned;
   //functor that works as iterator on head->dfunc tasks within the linked list
-  WebGrep::IteratorFunc2_t ifunc;
+  ZMBCommon::IteratorFunc2_t ifunc;
   std::shared_ptr<LList> head, list_cur_ptr;
 };
 
@@ -154,8 +153,8 @@ bool test2()
   std::atomic_uint g_cnt2;
   g_cnt2.store(0);
   ThreadsPool pool2(5);
-  std::array<WebGrep::CallableDoubleFunc, 128> funcArray;
-  for(WebGrep::CallableDoubleFunc& dfunc : funcArray)
+  std::array<ZMBCommon::CallableDoubleFunc, 128> funcArray;
+  for(ZMBCommon::CallableDoubleFunc& dfunc : funcArray)
     {
       dfunc.functor = [&g_cnt2]()
       {
@@ -166,7 +165,7 @@ bool test2()
       dfunc.cbOnException = [](const std::exception&){};
     }
   pool2.submit(funcArray.data(), funcArray.size());
-  for(WebGrep::CallableDoubleFunc& dfunc : funcArray)
+  for(ZMBCommon::CallableDoubleFunc& dfunc : funcArray)
     {
       pool2.submit(dfunc);
     }
@@ -180,7 +179,7 @@ bool test2()
 /** Test joibExportAll() that lets you to get abandoned tasks.*/
 bool test3()
 {
-  std::vector<WebGrep::CallableDoubleFunc> tasksLeft;
+  std::vector<ZMBCommon::CallableDoubleFunc> tasksLeft;
   ThreadsPool pool(3);
 
   //threaded dispatch : one thread for each test
@@ -226,7 +225,7 @@ bool test3()
   pool.joinExportAll(taskSavior);
 
   //execute the abandoned tasks here:
-  for(WebGrep::CallableDoubleFunc& lonelyTask : tasksLeft)
+  for(ZMBCommon::CallableDoubleFunc& lonelyTask : tasksLeft)
     {
       lonelyTask.functor();
     }
@@ -270,4 +269,4 @@ bool Test()
 //=============================================================================
 
 
-}//WebGrepTests
+}//ThreadPoolTests

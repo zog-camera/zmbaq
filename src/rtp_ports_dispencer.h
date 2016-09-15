@@ -20,7 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef RTPPORTSDISPENCER_H
 #define RTPPORTSDISPENCER_H
 
-#include "zmbaq_common.h"
+#include "zmbaq_common/zmbaq_common.h"
 #include <cstdint>
 #include <cstring>
 #include <string>

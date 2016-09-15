@@ -21,8 +21,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define FFMEDIASTREAM_H
 #include <glm/vec2.hpp>
 #include <string>
-#include "zmbaq_common.h"
-#include "mbytearray.h"
+#include "zmbaq_common/zmbaq_common.h"
+#include "zmbaq_common/mbytearray.h"
 #include "json/json.h"
 #include <Poco/Net/IPAddress.h>
 #include "Poco/Channel.h"

@@ -4,11 +4,11 @@
 #include <functional>
 #include <memory>
 #include <Poco/Task.h>
-#include "src/fshelper.h"
-#include "src/avcpp/packet.h"
+#include "../src/fshelper.h"
+#include "../src/avcpp/packet.h"
 
-#include "src/ffilewriter.h"
-#include "zmbaq_common/thread_pool.h"
+#include "../src/ffilewriter.h"
+#include "../src/zmbaq_common/thread_pool.h"
 
 
 

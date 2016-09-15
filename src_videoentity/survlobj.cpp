@@ -1,6 +1,6 @@
 #include "survlobj.h"
-#include "src/noteinfo.h"
-#include "mbytearray.h"
+#include "../src/noteinfo.h"
+#include "zmbaq_common/mbytearray.h"
 
 #include <fstream>
 #include <iostream>

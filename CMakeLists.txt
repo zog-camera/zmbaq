@@ -11,12 +11,18 @@ option(NO_V4L "Disable Video4Linux support" OFF)
 
 set(HOMIAK "$ENV{HOME}")
 
-set(URHO3D_DIR "${FFMPEG_DIR}" CACHE PATH "Path to Urho3D install dir")
-set(ZMQ_DIR "${FFMPEG_DIR}" CACHE PATH "Path to ZeroMq 4.x version")
-set(OPENCV_DIR "${FFMPEG_DIR}" CACHE PATH "OpenCV >= 3.0 installation path")
+set(DEPENDS_ROOT "$ENV{HOME}/mycode/zmbaq/deps" CACHE PATH "Dependency installation directory.")
+set(URHO3D_DIR "${DEPENDS_ROOT}" CACHE PATH "Path to Urho3D install dir")
+set(ZMQ_DIR "${DEPENDS_ROOT}" CACHE PATH "Path to ZeroMq 4.x version")
+set(OPENCV_DIR "${DEPENDS_ROOT}" CACHE PATH "OpenCV >= 3.0 installation path")
+
+
 set(CMAKE_CXX_FLAGS "-std=c++11 -msse2")
 
 add_definitions("-D__STDC_CONSTANT_MACROS -DBOOST_LOG_DYN_LINK")
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/
+    ${DEPENDS_ROOT}/include ${DEPENDS_ROOT}/include/jsoncpp
+    ${DEPENDS_ROOT}/include/glm ${DEPENDS_ROOT}/glm )
 
 if(NO_V4L)
        add_definitions("-DZMBAQ_NOV4L=1")
@@ -41,11 +47,6 @@ if(WITH_PROFILER)
         set(PROF_LINK_FLAGS "-lprofiler")
 endif()
 
-if(URHO3D_DIR)
-    include_directories(${URHO3D_DIR}/include/Urho3D/ThirdParty ${URHO3D_DIR}/include/Urho3D/ThirdParty/SDL)
-
-endif()
-
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
@@ -54,43 +55,14 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # libzmbsrc: common things library
 # common cpps
 add_subdirectory(src)
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/zmbaq_common)
-
-##########################################
 # libvideoentity
-file(GLOB src_lib_ve
- src_videoentity/*.cpp
- src_videoentity/*.h
- src_videoentity/delaunay/*.cpp
- src_videoentity/delaunay/*.h
- )
-add_library(videoentity STATIC ${src_lib_ve})
-target_link_libraries(videoentity zmbsrc -lPocoFoundation)
-##########################################
-##########################################
-
+add_subdirectory(src_videoentity)
 # RTSP dumper:
-file(GLOB_RECURSE files_rtsp_dumper src_rtsp_dumper/*.cpp src_rtsp_dumper/*.h)
-add_executable(rtsp_dumper ${files_rtsp_dumper})
-target_link_libraries(rtsp_dumper videoentity -lPocoFoundation)
-##########################################
+add_subdirectory(src_rtsp_dumper)
 ##########################################
 
 if (WITH_GUI)
-  find_library(u3dlib NAMES Urho3D
-      PATHS
-      ${URHO3D_DIR}/lib/Urho3D       ${URHO3D_DIR}/lib64/Urho3D
-      ${URHO3D_DIR}/lib64 ${URHO3D_DIR}/lib64/Urho3D/
-      ${FFMPEG_DIR}/lib)
-  message("u3d lib: ${u3dlib} dir: ${URHO3D_DIR}")
-
-  file(GLOB_RECURSE files_gui src_gui_urho3d/*.cpp src_gui_urho3d/*.h)
-  add_executable(zmbaq_gui ${files_gui} ${RC_OUT})
-  target_link_libraries(zmbaq_gui ${ASAN_LINK_FLAGS} ${PROF_LINK_FLAGS}
-   ${u3dlib} -ldl -lGL -lGLEW
-   videoentity
-  )
-
+    add_subdirectory(src_gui_urho3d)
 endif()
 
 ### TESTS ##

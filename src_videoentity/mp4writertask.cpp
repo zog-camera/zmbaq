@@ -3,8 +3,8 @@
 
 #include <Poco/Thread.h>
 #include <Poco/DateTime.h>
-#include "src/ffilewriter.h"
-#include "src/avcpp/packet.h"
+#include "../src/ffilewriter.h"
+#include "../src/avcpp/packet.h"
 
 namespace ZMBEntities {
 

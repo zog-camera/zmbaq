@@ -21,7 +21,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define AV_THINGS_H
 
 #include <string>
-#include "zmbaq_common.h"
+#include "zmbaq_common/zmbaq_common.h"
 #include <glm/vec2.hpp>
 
 struct AVFrame;
