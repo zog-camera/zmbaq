@@ -68,6 +68,7 @@ endif()
 ### TESTS ##
 ## test applications:
 add_subdirectory(unit_tests/test_ThreadPool)
+add_subdirectory(unit_tests/test_videoentity)
 
 
 
