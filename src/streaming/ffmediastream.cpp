@@ -167,7 +167,7 @@ void ffmediastream::stream_to_localhost(u_int16_t udp_port)
     stream_to_remote(ZCSTR("127.0.0.1"), udp_port);
 }
 
-bool ffmediastream::send_packet(AVPacket* pkt)
+bool ffmediastream::send_packet(std::shared_ptr<AVPacket> pkt)
 {
     return pv->send_packet(pkt);
 }
@@ -210,9 +210,9 @@ SHP(ZMB::FFileWriterBase) ffmediastream::stop_file()
     return p_file;
 }
 
-ZConstString ffmediastream::get_sprop() const
+std::string ffmediastream::get_sprop() const
 {
-    return pv->get_sprop();
+    return std::move(pv->get_sprop());
 }
 
 }//namespace ZMB

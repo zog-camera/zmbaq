@@ -17,8 +17,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 #include "av_things.h"
 #include <iostream>
-//#include <QImage>
-//#include "sws_imgscaler.h"
 #include <pthread.h>
 
 extern "C" {
@@ -65,9 +63,6 @@ struct av_things::impl
     int v_stream_idx;
     AVFrame* av_frame;
 
-    //contais copy of pointers from av_frame
-    AVPicture yuv_picture;
-
     AVCodecContext* codecContext;
     AVFormatContext* formatContext;
 
@@ -75,11 +70,6 @@ struct av_things::impl
 
     av_things* p_master;
 
-    //image scaler:
-//    SwsImgScaler scaler;
-
-//    //qimg pointer set after scaling:
-//    SHP(QImage) qimg;
     glm::ivec2 output_size_limit;
 
 

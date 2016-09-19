@@ -111,7 +111,7 @@ void MediaHandle::on_rtp_stream_created(const Json::Value& rtp_settings, const Z
     sdp_str = rtp_settings_str;
 }
 
-bool MediaHandle::send_rtp_packet(AVPacket* pkt)
+bool MediaHandle::send_rtp_packet(std::shared_ptr<AVPacket> pkt)
 {
     if (nullptr != media_stream)
         return media_stream->send_packet(pkt);

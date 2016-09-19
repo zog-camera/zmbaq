@@ -31,7 +31,7 @@ extern "C" {
 #include <functional>
 #include "zmbaq_common/zmbaq_common.h"
 #include "zmbaq_common/timingutils.h"
-#include "zmbaq_common/mbytearray.h"
+#include "mimage.h"
 #include "json/json.h"
 #include "glm/vec2.hpp"
 
@@ -87,13 +87,18 @@ public:
                       int enc_width, int enc_height);
     void destroy_stream();
 
-    //transmit already encoded packet:
-    bool send_packet(AVPacket* pkt);
+    /** Transmit already encoded packet, the caller must provide deleter. */
+    bool send_packet(std::shared_ptr<AVPacket> pkt);
 
-    /** Copy frame into internal buffer.
-     * The frame shall be converted to appropriate size for the encoder.
-     * @return false if stream not created. */
-    bool push_data(const u_int8_t* data, glm::ivec2 data_size, int /*AVPixelFormat*/ data_format);
+    /** Convert input data into appropriate format by using sws_scale(),
+     * the returned buffer will be used for encoding.
+     * If the inputData already has appropriate format for encoding, then it'll reference it instead of copying/scaling.
+     * To avoid that behavior the caller must explicitly make a new MImage buffer and provide it.
+     *
+     * @param forceCopying: if TRUE then it'll allocate new buffer even if the input buffer
+     * has appropriate data format and needs no scaling.
+ */
+    ZMB::MImage push(ZMB::MImage inputData);
 
     /** Encode H264 and make RTP dispatch to destination*/
     bool send_data();
@@ -102,10 +107,10 @@ public:
      * @retun false on some errors. */
     bool valid() const;
 
-    ZConstString rtp_ip() const;
+    std::string rtp_ip() const;
 
     /** Returns S-prop parameters. Non-empty if the stream is created.*/
-    ZConstString get_sprop() const;
+    std::string get_sprop() const;
 
     //generate this->sprop_parameters
     SHP(Json::Value) make_rtp_settings();
@@ -128,7 +133,7 @@ private:
     bool f_ready;
 
     const char *filename;
-    ZMBCommon::MByteArray d_rtp_ip;
+    std::string d_rtp_ip;
     u_int16_t d_rtp_port;
     AVOutputFormat *fmt;
     AVFormatContext *oc;
@@ -145,15 +150,13 @@ private:
 
     /* video output */
 
-    SwsContext* sws_ctx;
-    AVFrame *frame;
-    AVPicture*  dst_picture;
+    ZMB::MImage frameImage;
     u_int64_t frame_count;
     u_int64_t bad_frame_count;
 
     TimingUtils::LapTimer tm;
     //filled on create_stream();
-    ZMBCommon::MByteArray sprop_parameters;
+    std::string sprop_parameters;
 
     PacketsPocket pock;
 
@@ -165,7 +168,7 @@ private:
     bool write_video_frame(AVFormatContext *oc, AVStream *st, int flush);
 
     void open_video(AVCodec *codec, AVStream *st);
-    int        write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AVStream *st, AVPacket *pkt);
+    int writeEncodedPkt(AVFormatContext *fmt_ctx, const AVRational *time_base, AVStream *st, std::shared_ptr<AVPacket> pkt);
 
 
     AVStream* add_stream(AVFormatContext* fmt_ctx, AVCodec **codec, int codec_id) const;

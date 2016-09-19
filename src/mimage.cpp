@@ -16,10 +16,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 
 #include "mimage.h"
+
 extern "C"
 {
 #include "libavutil/frame.h"
+#include "libavutil/imgutils.h"
 #include "libavcodec/avcodec.h"
+#include "libswscale/swscale.h"
 }
 
 bool operator < (const ZMB::MRegion& lhs, const ZMB::MRegion& rhs)
@@ -80,51 +83,56 @@ int MRegion::right() const {return bottom_right().x;}
 int MRegion::top() const {return top_left().y;}
 int MRegion::bottom() const {return bottom_right().y;}
 
+//-----------------------------------------------------------------------------
+void FrameDeleter::operator()(AVFrame* pframe) const
+{
+  av_frame_unref(pframe);
+}
+//-----------------------------------------------------------------------------
+PictureHolder::PictureHolder()
+{
+  dataSlicesArray.fill(nullptr); stridesArray.fill(0);
+  format = -1;
+  dimension = MSize(0,0);
+}
+PictureHolder::~PictureHolder()
+{
+  if (nullptr != onDestructCB)
+    {
+      onDestructCB(this);
+    }
+}
 
+PictureHolder::Lock_t&& PictureHolder::getLocker()
+{
+  return std::move(PictureHolder::Lock_t(mu));
+}
+
+int PictureHolder::fmt() const {return format;}
+int PictureHolder::w() const {return dimension.width();}
+int PictureHolder::h() const {return dimension.height();}
+
+//-----------------------------------------------------------------------------
 
 class MImage::MImagePV
 {
 public:
     MImagePV()
     {
-       fn_allocate_frame = []() {return av_frame_alloc();};
-       fn_deallocate_frame = [](AVFrame** ppframe) {av_frame_free(ppframe); *ppframe = 0;};
-       fn_avpicture_alloc = [](AVPicture* picture, int pix_fmt,
-                      int width, int height) -> int
-       {
-           return avpicture_alloc(picture, (enum AVPixelFormat)pix_fmt, width, height);
-       };
-       fn_avpicture_free = [](AVPicture* pic) {avpicture_free(pic);};
-       frame_p = 0;
-
-       memset(&picture, 0, sizeof(picture));
-       format = -1;
+      sws = nullptr;
+      lastCvtFmt = -1;
+      lastCvtSize = MSize(0,0);
     }
     ~MImagePV()
     {
-        clear();
-    }
-    void clear()
-    {
-        fn_avpicture_free(&picture);
-        fn_deallocate_frame(&frame_p);
-        format = -1;
-        sz = MSize(-1,-1);
     }
 
-    AVFrame* frame_p;
-    AVPicture picture;
-    int format;
-    MSize sz;
-
-    std::function<AVFrame*()> fn_allocate_frame;
-    std::function<void(AVFrame** ppframe)> fn_deallocate_frame;
-
-    std::function<int(AVPicture* /*picture*/, int /*enum AVPixelFormat pix_fmt*/,
-                      int /*width*/, int /*height)*/)
-                      > fn_avpicture_alloc;
-    std::function<void (AVPicture *picture)> fn_avpicture_free;
-
+    std::shared_ptr<AVFrame> frame_p;
+    std::shared_ptr<PictureHolder> picture;
+    struct SwsContext* sws;
+    MSize lastCvtSize;
+    int lastCvtFmt;
+    std::mutex mu;
 };
 
 MImage::MImage() : pv(std::make_shared<MImagePV>())
@@ -136,99 +144,96 @@ MImage::~MImage()
 {
 }
 
+MImage::Mutex_t& MImage::mutex() const
+{
+  return pv->mu;
+}
+
+MImage::Lock_t&& MImage::getLocker() const
+{
+  return std::move(MImage::Lock_t(mutex(), pv));
+}
+
+PictureHolderPtr MImage::get() const
+{
+  return pv->picture;
+}
+
+PictureHolderPtr MImage::getSafe(Lock_t& lk) const
+{
+  return pv->picture;
+}
+
+std::shared_ptr<AVFrame> MImage::getFrame(Lock_t&)
+{
+  return pv->frame_p;
+}
+
 bool MImage::empty() const
 {
-   return pv->sz.width() > 0 && pv->sz.height() > 0;
+   return nullptr == pv->picture;
 }
 
-void MImage::clear()
+std::shared_ptr<PictureHolder> MImage::create(MSize dim, int avpic_fmt, Lock_t&)
 {
-    pv->clear();
-}
+  auto ph = std::make_shared<PictureHolder>();
+  int res = av_image_fill_linesizes(ph->stridesArray.data(), (enum AVPixelFormat)avpic_fmt, dim.width());
+  if (res < 0)
+    return nullptr;
 
-bool MImage::create(MSize dim, int avpic_fmt)
-{
-    AVPicture neu;
-    memset(&neu, 0, sizeof(neu));
-
-    int res = pv->fn_avpicture_alloc(&neu, (AVPixelFormat)avpic_fmt, dim.width(), dim.height());
-    if (0 == res)
-        imbue(neu);
-    return (0 == res);
-}
-
-bool MImage::imbue(AVFrame* frame)
-{
-    clear();
-    pv->frame_p = frame;
-    pv->format = frame->format;
-    pv->sz = MSize(frame->width, frame->height);
-    return true;
-}
-
-bool MImage::imbue(const AVPicture &pic, int format, MSize dim)
-{
-    clear();
-    pv->sz = dim;
-    pv->picture = pic;
-    pv->format = format;
-    return true;
-}
-
-int MImage::fmt() const
-{
-    return pv->format;
-}
-
-MSize MImage::dimensions() const
-{
-    return pv->sz;
-}
-int MImage::w() const
-{
-    return pv->sz.width();
-}
-
-int MImage::h() const
-{
-    return pv->sz.height();
-}
-
-
-AVPicture MImage::unsafe_access() const
-{
-    if (nullptr == pv->frame_p)
+  res = av_image_alloc(ph->dataSlicesArray.data(), ph->stridesArray.data(),
+                       dim.width(), dim.height(),(enum AVPixelFormat)avpic_fmt, (int)sizeof(void*));
+  if (res < 0)
     {
-       return pv->picture;
+      return nullptr;
     }
-    AVPicture pc;
-    memcpy(&pc.data, &(pv->frame_p->data), sizeof(pc.data));
-    memcpy(&pc.linesize, &(pv->frame_p->linesize), sizeof(pc.linesize));
-    return pc;
+  ph->onDestructCB = [](PictureHolder* picture) {
+    auto lk = picture->getLocker();
+    av_freep(picture->dataSlicesArray.data());
+  };
+  ph->dimension = dim;
+  ph->format = avpic_fmt;
+
+  pv->picture = ph;
+  return ph;
 }
 
-
-
-std::function<AVFrame*()>* MImage::pfn_allocate_frame() const
+PictureHolderPtr MImage::imbue(std::shared_ptr<AVFrame> frame, Lock_t&)
 {
-        return &(pv->fn_allocate_frame);
+  auto ph = std::make_shared<PictureHolder>();
+  ::memcpy(ph->dataSlicesArray.data(), frame->data, sizeof(frame->data));
+  ::memcpy(ph->stridesArray.data(), frame->linesize, sizeof(frame->linesize));
+  ph->onDestructCB = [frame](PictureHolder*) { (void)frame;};
+  pv->picture = ph;
+  return ph;
 }
 
-std::function<void(AVFrame** ppframe)>* MImage::pfn_deallocate_frame() const
+void MImage::imbue(std::shared_ptr<PictureHolder> picture, Lock_t&)
 {
-    return &(pv->fn_deallocate_frame);
+  pv->picture = picture;
 }
 
-std::function<int(AVPicture* /*picture*/, int /*enum AVPixelFormat pix_fmt*/,
-                  int /*width*/, int /*height)*/) >*
-MImage::pfn_avpicture_alloc() const
+PictureHolderPtr MImage::scale(PictureHolderPtr picture, Lock_t&)
 {
-        return &(pv->fn_avpicture_alloc);
-}
+  auto srclk = picture->getLocker();
+  auto dstlk = getLocker();
 
-std::function<void (AVPicture *picture)>* MImage::pfn_avpicture_free() const
-{
-    return &(pv->fn_avpicture_free);
+  if (nullptr == pv->picture)
+    return pv->picture;
+
+  PictureHolder& dst(*(pv->picture.get()));
+
+  if(pv->lastCvtFmt != picture->fmt() || pv->lastCvtSize != picture->dimension)
+    {
+      if(nullptr != pv->sws)
+        sws_freeContext(pv->sws);
+      pv->sws = sws_getContext(picture->w(), picture->h(), (enum AVPixelFormat)picture->fmt(),
+                               dst.w(), dst.h(), (enum AVPixelFormat)dst.fmt(), SWS_FAST_BILINEAR, NULL, NULL, NULL);
+    }
+  sws_scale(pv->sws, picture->dataSlicesArray.data(), picture->stridesArray.data(),
+            0, picture->h(),
+            dst.dataSlicesArray.data(), dst.stridesArray.data());
+  return pv->picture;
 }
 
 } //ZMB

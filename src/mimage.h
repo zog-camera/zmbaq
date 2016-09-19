@@ -22,6 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <memory>
 #include <glm/vec2.hpp>
 #include <glm/mat2x2.hpp>
+#include <mutex>
 
 extern "C" {
     struct AVFrame;
@@ -77,61 +78,108 @@ struct MRegion : public glm::tmat2x2<int, glm::highp>
 
 };
 
+bool operator < (const ZMB::MRegion& lhs, const ZMB::MRegion& rhs);
 
+//-----------------------------------------------------------------------------
+/** Default deleter.*/
+struct FrameDeleter
+{
+  //makes av_frame_unref(pframe)
+  void operator()(AVFrame* pframe) const;
+};
+
+class PictureHolder
+{
+public:
+  static const int MAX_SLICES_NUM = 8;
+  typedef std::mutex Mutex_t;
+  typedef std::unique_lock<Mutex_t> Lock_t;
+
+  //will zero-fill the pointers.
+  PictureHolder();
+
+  //calls onDestructCB()
+  virtual ~PictureHolder();
+
+  int fmt() const;
+  int w() const;
+  int h() const;
+
+
+  std::array<uint8_t*, MAX_SLICES_NUM> dataSlicesArray;
+  std::array<int, MAX_SLICES_NUM> stridesArray;
+  int format;//< constructed as -1, NONE; casted from (enum AVPixelFormat)
+  MSize dimension;
+
+  //synchronization mutex:
+  Mutex_t mu;
+
+  //for example: auto lk = mimage->getLocker(); //binded to this->mu
+  Lock_t&& getLocker();
+
+  std::function<void(PictureHolder*)> onDestructCB;
+};
+typedef std::shared_ptr<PictureHolder> PictureHolderPtr;
+//-----------------------------------------------------------------------------
 /** Notice! Copying of the object -- is sharing.
  *
 */
 class MImage
 {
+  class MImagePV;
+  std::shared_ptr<MImagePV> pv;
+
 public:
-    std::function<AVFrame*()>* pfn_allocate_frame() const;
-    std::function<void(AVFrame** ppframe)>* pfn_deallocate_frame() const;
+  //--------------------------------------------------
+  typedef std::mutex Mutex_t;
+  class Lock_t : public std::unique_lock<Mutex_t>
+  {
+  public:
+    Lock_t(Mutex_t& mu, std::shared_ptr<MImagePV> ref)
+      : std::unique_lock<Mutex_t>(mu), refptr(ref)
+    {}
 
-    std::function<int(AVPicture* /*picture*/, int /*enum AVPixelFormat pix_fmt*/,
-                      int /*width*/, int /*height)*/)
-                      >* pfn_avpicture_alloc() const;
-    std::function<void (AVPicture *picture)>* pfn_avpicture_free() const;
+    std::shared_ptr<MImagePV> refptr;
+  };
+  //--------------------------------------------------
+  MImage();
+  virtual ~MImage();
 
+  bool empty() const;
 
-    MImage();
-    virtual ~MImage();
+  Mutex_t& mutex() const;
 
-    bool empty() const;
+  //for example: auto lk = mimage->getLocker();
+  Lock_t&& getLocker() const;
 
-    void clear(); //< deallocates image data.
+  //non thread-safe access:
+  PictureHolderPtr get() const;
 
-    /** Alloc new image data of given dimensions and format.
-     * Will use pfn_avpicture_alloc() for picture creation,
-     *  thus the clear() will call pfn_avpicture_free(). */
-    bool create(MSize dim, /*(AVPixelFormat)*/int avpic_fmt);
+  //thread-safe access:
+  PictureHolderPtr getSafe(Lock_t& lk) const;
 
-    /** Take ownership of the frame data and/or frame pointer.
-     *  The frame DATA and the structure itself WILL BE DELETED in destructor.
-     *
-     *  @param to_be_deleted: if TRUE the provided pointer to  (AVFrame) object
-     *  shall be treated as heap-allocation and deleted in destructor via
-     *  pfn_deallocate_frame(AVFrame**). */
-    bool imbue(AVFrame* frame);
+  /** @return non-NULL pointer only when the AVFrame pointer was imbued().*/
+  std::shared_ptr<AVFrame> getFrame(Lock_t&);
 
-    /** Take ownership of the picture data.
-     *  The picture's DATA WILL BE DELETED in destructor. */
-    bool imbue(const AVPicture& pic,
-               int format = -1,
-               MSize dim = MSize(-1, -1));
+  /** Alloc new image data of given dimensions and format. */
+  PictureHolderPtr create(MSize dim, /*(AVPixelFormat)*/int avpic_fmt, Lock_t&);
 
-    AVPicture unsafe_access() const;
-    int fmt() const;
+  /** Take ownership of the frame data and/or frame pointer.
+    * The user must provide custom deleter.
+    * @return picture pointers constructed from the frame.
+    */
+  PictureHolderPtr imbue(std::shared_ptr<AVFrame> frame, Lock_t&);
 
-    int w() const;
-    int h() const;
-    MSize dimensions() const;
+  /** Take ownership of the picture data.
+   *  The shared pointer can be constructed with custom deleter
+   * or without it but with PictureHolder.onDestructCB callback instead.
+   */
+  void imbue(PictureHolderPtr picture, Lock_t&);
 
-private:
-    class MImagePV;
-    std::shared_ptr<MImagePV> pv;
+  /** Make scaled data from other picture */
+  PictureHolderPtr scale(PictureHolderPtr picture, Lock_t&);
 };
-
-bool operator < (const ZMB::MRegion& lhs, const ZMB::MRegion& rhs);
+//-----------------------------------------------------------------------------
 
 }//ZMB
 #endif // MIMAGE_H

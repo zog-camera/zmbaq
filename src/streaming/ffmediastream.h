@@ -74,14 +74,14 @@ public:
     glm::ivec2 encoded_frame_size() const;
 
     /** Returns S-prop parameters. Non-empty if the stream is created.*/
-    ZConstString get_sprop() const;
+    std::string get_sprop() const;
 
 
     void stream_to_remote(const ZConstString& ip, u_int16_t udp_port);
     void stream_to_localhost(u_int16_t udp_port);
 
-    //used when we just retransmit RTP traffic
-    bool send_packet(AVPacket* pkt);
+    /** Used when we just retransmit RTP traffic, the caller must provide deleter.*/
+    bool send_packet(std::shared_ptr<AVPacket> pkt);
 
     /** Write h264 frames to .mp4 file.
      * @return ZMB::FFileWriterBase with empty() == true. */

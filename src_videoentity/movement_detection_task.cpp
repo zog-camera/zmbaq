@@ -1,7 +1,5 @@
 #include "movement_detection_task.h"
 
-#include "../src/sws_imgscaler.h"
-
 extern "C"
 {
 #include <libavcodec/avcodec.h>
@@ -299,7 +297,7 @@ public:
         //Determine the scaling factor for the downscale
         //Approximate number of pixels after rescale: full HD downscaled by 8X
 
-        ZMB::MSize inp_sz = frame.dimensions();
+        ZMB::MSize inp_sz = frame.get()->dimension;
         if (params.with_downscale)
         {
             int width   = inp_sz.width();
@@ -312,19 +310,17 @@ public:
             int down_h = std::round((float)height / scale);
 
 
-            if (nullptr == scaler)
-            {
-               scaler = std::make_shared<ZMB::SwsImgScaler>();
-            }
-            img = scaler->scale(frame, ZMB::MSize(down_w,down_h));
+            auto lk = frame.getLocker();
+            img.scale(frame.get(), lk);
         }
         else
         {
             img = frame;
         }
-        AVPicture avp = img.unsafe_access();
-        auto sz = img.dimensions();
-        resized = cv::Mat(sz.height(), sz.width(), CV_8UC3, (void*)avp.data[0]);
+        auto lk = frame.getLocker();
+        auto _pic = img.getSafe(lk);
+        auto sz = _pic->dimension;
+        resized = cv::Mat(sz.height(), sz.width(), CV_8UC3, (void*)_pic->dataSlicesArray[0]);
 
         mog2->apply(resized, mask);
 
@@ -372,8 +368,6 @@ private:
 
     //for tracking of the whole frame:
     MotionDelayedTrigger frame_treshold_track;
-
-    std::shared_ptr<ZMB::SwsImgScaler> scaler;
     cv::Ptr <cv::BackgroundSubtractorMOG2> mog2;
 };
 

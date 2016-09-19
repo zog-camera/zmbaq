@@ -90,17 +90,13 @@ ffmpeg_rtp_encoder::ffmpeg_rtp_encoder(Poco::Channel* logChan)
   if (logChan)
     { logChan->open(); }
 
-  sws_ctx = NULL;
   f_ready = false;
   oc = 0;
   d_rtp_port = 0;
   video_st = 0;
   video_codec = 0;
   video_is_eof = 0;
-  frame = 0;
   frame_count = 0;
-  dst_picture = new AVPicture;
-  memset(dst_picture, 0x00, sizeof(AVPicture));
   sidedata = nullptr;
 
   dict = 0;
@@ -109,7 +105,6 @@ ffmpeg_rtp_encoder::ffmpeg_rtp_encoder(Poco::Channel* logChan)
 ffmpeg_rtp_encoder::~ffmpeg_rtp_encoder()
 {
     av_dict_free(&dict);
-    delete dst_picture;
 }
 
 glm::ivec2 ffmpeg_rtp_encoder::default_enc_frame_size()
@@ -139,29 +134,39 @@ std::string ffmpeg_rtp_encoder::get_sprop_parameters(glm::ivec2 encoded_frame_si
   return props;
 }
 
-/** Encode frame and send it.*/
-bool ffmpeg_rtp_encoder::push_data(const u_int8_t* data, glm::ivec2 data_size, int data_format)
+
+ZMB::MImage ffmpeg_rtp_encoder::push(ZMB::MImage inputData)
 {
-    if (!f_ready || oc == nullptr)
-        return false;
+  auto lk = inputData.getLocker();
+  auto dstlock = frameImage.getLocker();
 
-    AVCodecContext *c = video_st->codec;
-    if (!sws_ctx)
+  AVCodecContext* c = video_st->codec;
+
+  auto _pic = frameImage.get();
+  if (frameImage.empty() || _pic->fmt() != c->pix_fmt
+      || _pic->w() != c->width || _pic->h() != c->height)
     {
-        pock.laptime.lapTime();
-        sws_ctx = sws_getCachedContext( sws_ctx, data_size.x, data_size.y, (AVPixelFormat)data_format,
-                                  c->width, c->height, AV_PIX_FMT_YUV420P,
-                                  sws_flags, NULL, NULL, NULL);
-        assert(NULL != sws_ctx);
-    }
-    AVPicture inp;
-    memset(&inp, 0x00, sizeof(inp));
-    avpicture_fill (&inp, data, (AVPixelFormat)data_format, data_size.x, data_size.y);
-    sws_scale(sws_ctx,
-              (const uint8_t * const *)inp.data, inp.linesize,
-              0, data_size.y, dst_picture->data, dst_picture->linesize);
+      std::shared_ptr<AVFrame> pframe = std::shared_ptr<AVFrame>(av_frame_alloc(), ZMB::FrameDeleter());
 
-    return true;
+      auto _inpPic = inputData.get();
+      if (c->pix_fmt == _inpPic->fmt() && c->width == _inpPic->w() && c->height == _inpPic->h())
+        {
+          frameImage = inputData;
+          _pic = _inpPic;
+        }
+      else
+        {
+          frameImage.imbue(pframe, dstlock);
+          frameImage.create(ZMB::MSize(c->width, c->height), c->pix_fmt, dstlock);
+        }
+    }
+  auto pframe = frameImage.getFrame(dstlock);
+  pframe->format =  c->pix_fmt;
+  pframe->width  = c->width;
+  pframe->height = c->height;
+  ::memcpy(pframe->data, _pic->dataSlicesArray.data(), sizeof(pframe->data));
+  ::memcpy(pframe->linesize, _pic->stridesArray.data(), sizeof(pframe->linesize));
+  return frameImage;
 }
 
 bool ffmpeg_rtp_encoder::send_data()
@@ -169,7 +174,7 @@ bool ffmpeg_rtp_encoder::send_data()
     if (!f_ready || oc == nullptr)
         return false;
 
-    if (NULL == frame || NULL == dst_picture->data[0] || NULL == video_st )
+    if (NULL == video_st || frameImage.empty())
         return false;
 
     flush = 0;
@@ -205,22 +210,22 @@ static void pkt_time_rescale(const AVRational *time_base, AVStream *st, AVPacket
     pkt->stream_index = st->index;
 }
 
-int ffmpeg_rtp_encoder::write_frame(AVFormatContext *fmt_ctx, const AVRational *time_base, AVStream *st, AVPacket *pkt)
+int ffmpeg_rtp_encoder::writeEncodedPkt(AVFormatContext *fmt_ctx, const AVRational *time_base,
+                                    AVStream *st, std::shared_ptr<AVPacket> pkt)
 {
-    pkt_time_rescale(time_base, st, pkt);
-    int res = av_interleaved_write_frame(fmt_ctx, pkt);
-    av::PacketPtr sh_pkt = std::make_shared<av::Packet>(pkt);
+    pkt_time_rescale(time_base, st, pkt.get());
+    int res = av_interleaved_write_frame(fmt_ctx, pkt.get());
+    av::PacketPtr sh_pkt = std::make_shared<av::Packet>(pkt.get());
     pock.push(sh_pkt);
-    av_free_packet(pkt);
     return res;
 }
 
 
 /**************************************************************/
-bool ffmpeg_rtp_encoder::send_packet(AVPacket* pkt)
+bool ffmpeg_rtp_encoder::send_packet(std::shared_ptr<AVPacket> pkt)
 {
     /* If size is zero, it means the image was buffered. */
-    int ret = write_frame(oc, &(video_st->codec->time_base), video_st, pkt);
+    int ret = writeEncodedPkt(oc, &(video_st->codec->time_base), video_st, pkt);
     return 0 == ret;
 }
 
@@ -255,19 +260,24 @@ bool ffmpeg_rtp_encoder::write_video_frame(AVFormatContext *oc, AVStream *st, in
 
         pkt.flags        |= AV_PKT_FLAG_KEY;
         pkt.stream_index  = st->index;
-        pkt.data          = dst_picture->data[0];
-        pkt.size          = sizeof(AVPicture);
+        auto lk = frameImage.getLocker();
+        auto frame = frameImage.getFrame(lk);
+
+        pkt.buf  = frame->buf[0];
+        pkt.size = frame->pkt_size;
+        pkt.data = frame->data[0];
 
         ret = av_interleaved_write_frame(oc, &pkt);
     } else {
-        AVPacket pkt;
-        memset(&pkt, 0x00, sizeof(pkt));
-        int got_packet;
-        av_init_packet(&pkt);
+        std::shared_ptr<AVPacket> pkt = std::make_shared<AVPacket>();
+        av_init_packet(pkt.get());
+        int got_packet = -1;
 
         /* encode the image */
-        frame->pts = frame_count;
-        ret = avcodec_encode_video2(c, &pkt, flush ? NULL : frame, &got_packet);
+        auto lk = frameImage.getLocker();
+        auto framePtr = frameImage.getFrame(lk);
+        framePtr->pts = frame_count;
+        ret = avcodec_encode_video2(c, pkt.get(), flush ? NULL : framePtr.get(), &got_packet);
 
         if (ret >= 0)
         {
@@ -275,7 +285,7 @@ bool ffmpeg_rtp_encoder::write_video_frame(AVFormatContext *oc, AVStream *st, in
 
             if (got_packet)
             {
-                ret = write_frame(oc, &c->time_base, st, &pkt);
+                ret = writeEncodedPkt(oc, &c->time_base, st, pkt);
             } else {
                 if (flush) video_is_eof = 1;
                 ret = 0;
@@ -289,8 +299,7 @@ bool ffmpeg_rtp_encoder::write_video_frame(AVFormatContext *oc, AVStream *st, in
 void ffmpeg_rtp_encoder::close_video(AVStream *st)
 {
     avcodec_close(st->codec);
-    av_free(dst_picture->data[0]);
-    av_frame_free(&frame);
+    frameImage = ZMB::MImage();
 }
 
 /**************************************************************/
@@ -306,22 +315,6 @@ void ffmpeg_rtp_encoder::open_video(AVCodec *codec, AVStream *st)
     /* open the codec */
     ret = avcodec_open2(c, codec, NULL);
     assert(ret >= 0);
-
-    /* allocate and init a re-usable frame */
-    frame = av_frame_alloc();
-    assert(NULL != frame);
-
-    frame->format = c->pix_fmt;
-    frame->width = c->width;
-    frame->height = c->height;
-
-    /* Allocate the encoded raw picture. */
-    ret = avpicture_alloc(dst_picture, c->pix_fmt, c->width, c->height);
-    assert(ret >= 0);
-
-    /* copy data and linesize picture pointers to frame */
-    memcpy(frame->data, dst_picture->data, sizeof(dst_picture->data));
-    memcpy(frame->linesize, dst_picture->linesize, sizeof(dst_picture->linesize));
 }
 
 AVStream* ffmpeg_rtp_encoder::make_vstream_w_defaults(AVFormatContext* afctx, AVCodec** codec) const
@@ -460,7 +453,7 @@ int ffmpeg_rtp_encoder::create_stream(const AVFormatContext* src_ctx,
 {
     destroy_stream();
 
-    d_rtp_ip = rtp_ip;
+    d_rtp_ip = rtp_ip.begin();
     d_rtp_port = rtp_port;
 
 
@@ -556,7 +549,7 @@ int ffmpeg_rtp_encoder::create_stream(const AVFormatContext* src_ctx,
 int ffmpeg_rtp_encoder::create_stream(ZConstString rtp_ip, u_int16_t rtp_port,
                                       int enc_width, int enc_height)
 {
-    if (nullptr != oc && d_rtp_ip.get_const_str() == rtp_ip
+    if (nullptr != oc && d_rtp_ip == rtp_ip.begin()
             && d_encod_size == glm::ivec2(enc_width, enc_height))
     {//case already created
         return 0 ;
@@ -565,7 +558,7 @@ int ffmpeg_rtp_encoder::create_stream(ZConstString rtp_ip, u_int16_t rtp_port,
     {
         destroy_stream();
     }
-    d_rtp_ip = rtp_ip;
+    d_rtp_ip = rtp_ip.begin();
     d_rtp_port = rtp_port;
     d_encod_size = glm::ivec2(enc_width, enc_height);
 
@@ -642,7 +635,7 @@ std::shared_ptr<Json::Value> ffmpeg_rtp_encoder::make_rtp_settings()
     if (nullptr != video_st)
     {
         char* sprop = extradata2psets(video_st->codec);
-        sprop_parameters = ZConstString(sprop);
+        sprop_parameters = sprop;
         if (nullptr != sprop)
             av_free (sprop);
         rtp["sprop"] = (sprop_parameters.data());
@@ -724,9 +717,9 @@ std::string ffmpeg_rtp_encoder::make_rtp_settings_str(const Json::Value& jo)
    return rtp;
 }
 
-ZConstString ffmpeg_rtp_encoder::get_sprop() const
+std::string ffmpeg_rtp_encoder::get_sprop() const
 {
-    return sprop_parameters.get_const_str();
+    return sprop_parameters;
 }
 
 void ffmpeg_rtp_encoder::destroy_stream()
@@ -762,20 +755,12 @@ void ffmpeg_rtp_encoder::destroy_stream()
         avformat_free_context(oc);
     }
 
-    if (sws_ctx)
-    {
-        sws_freeContext(sws_ctx);
-    }
-
-    sws_ctx = NULL;
     f_ready = false;
     oc = 0;
     video_st = 0;
     video_codec = 0;
     video_is_eof = 0;
-    frame = 0;
     frame_count = 0;
-    memset(dst_picture, 0x00, sizeof(AVPicture));
 }
 
 bool ffmpeg_rtp_encoder::valid() const
@@ -1000,9 +985,9 @@ void ffmpeg_rtp_encoder::stop_file()
     }
 }
 
-ZConstString ffmpeg_rtp_encoder::rtp_ip() const
+std::string ffmpeg_rtp_encoder::rtp_ip() const
 {
-   return d_rtp_ip.get_const_str();
+   return d_rtp_ip;
 }
 
 

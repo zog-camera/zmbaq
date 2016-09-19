@@ -74,7 +74,7 @@ public:
     /** Pass H264 packet from src context to destination RTP(H264).
     @param src_context: Must be previously constructed with same context pointer.
     */
-    bool send_rtp_packet(AVPacket* pkt);
+    bool send_rtp_packet(std::shared_ptr<AVPacket> pkt);
 
     bool is_busy() const;
 
