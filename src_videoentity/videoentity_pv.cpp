@@ -20,7 +20,7 @@ public:
 
     void clear();
 
-    bool configure(const Json::Value* jobject, bool do_start,
+    bool configure(const Json::Value* jobject,
                    SHP(ZMBCommon::ThreadsPool) p_pool = std::make_shared<ZMBCommon::ThreadsPool>(2));
 
     //----------------------------
@@ -59,7 +59,7 @@ void VEPV::clear()
     stream = 0;
 }
 
-bool VEPV::configure(const Json::Value* jobject, bool do_start, std::shared_ptr<ZMBCommon::ThreadsPool> p_pool)
+bool VEPV::configure(const Json::Value* jobject, std::shared_ptr<ZMBCommon::ThreadsPool> p_pool)
 {
   config = *jobject;
   pool = nullptr == p_pool? std::make_shared<ZMBCommon::ThreadsPool>(2) : p_pool;
@@ -80,23 +80,23 @@ bool VEPV::configure(const Json::Value* jobject, bool do_start, std::shared_ptr<
   cam_param.settings = *jobject;
 
   std::string _s (path.begin(), path.size());
-  auto stream = new ZMBEntities::StreamReader(_s);
-  bool ok = stream->open(path);
+  auto _stream = new ZMBEntities::StreamReader(_s);
+  bool ok = _stream->open(path);
   if (ok)
     {
       _s = name.begin();
       auto file_dump = new ZMBEntities::Mp4WriterTask();
       file_dump->tag = _s;
-      file_dump->open(stream->ff.get_format_ctx(), name, fs_helper);
-      stream->file_pkt_q = file_dump;
+      file_dump->open(_stream->ff.get_format_ctx(), name, fs_helper);
+      _stream->file_pkt_q = file_dump;
       file_dump = file_dump;
     }
   else
     {
-      delete stream;
-      stream = 0;
+      delete _stream;
+      _stream = 0;
     }
-  stream = stream;
+  stream = _stream;
   return ok;
 
 }
@@ -105,9 +105,9 @@ bool VEMp4WritingVisitor::visit(ZMBEntities::VideoEntity* entity, const Json::Va
 {
   VideoEntity::accept<VEMp4WritingVisitor> (entity, *this);
 
-  data = std::shared_ptr<VEPV>();
+  data = std::make_shared<VEPV>();
   data->e_id = entity->entity_id;
-  data->configure(jobject, true, separateThreadPool?
+  data->configure(jobject, separateThreadPool?
                     std::make_shared<ZMBCommon::ThreadsPool>(2) : entity->pool);
 
   entity->getConfigFunction = [=](){ return VideoEntity::ConfigPair_t(data->cam_param, data->config); };

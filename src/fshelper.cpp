@@ -82,7 +82,7 @@ void FSItem::to_json(Json::Value* jo)
     fslocation->mut.unlock();
 }
 
-FSLocation::FSLocation(FSHelper* master)
+FSLocation::FSLocation(std::shared_ptr<ZMFS::FSHelper> master)
     : fshelper(master)
 {
     type = FS_TEMP;
@@ -130,18 +130,18 @@ bool FSLocation::absolute_path(ZUnsafeBuf* str, const ZConstString& fname)
 class FSHelper::FSPV
 {
 public:
-    FSPV(FSHelper* p) : master(p)
+    FSPV()
     {
       logChannel = nullptr;
-        temp_location = std::make_shared<FSLocation>(p);
-        perm_location = std::make_shared<FSLocation>(p);
-        ZMB::Settings* settings = ZMB::Settings::instance();
-        std::unique_lock<std::mutex> lk(settings->accessMutex);
-        ZConstString path = settings->string(ZMB::ZMKW_FS_TEMP_LOCATION, lk);
-        temp_location->location = path;
-        path = settings->string(ZMB::ZMKW_FS_PERM_LOCATION, lk);
-        perm_location->location = path;
-        perm_location->type = FSLocation::FS_PERMANENT_LOCAL;
+      temp_location = std::make_shared<FSLocation>();
+      perm_location = std::make_shared<FSLocation>();
+      ZMB::Settings* settings = ZMB::Settings::instance();
+      std::unique_lock<std::mutex> lk(settings->accessMutex);
+      ZConstString path = settings->string(ZMB::ZMKW_FS_TEMP_LOCATION, lk);
+      temp_location->location = path;
+      path = settings->string(ZMB::ZMKW_FS_PERM_LOCATION, lk);
+      perm_location->location = path;
+      perm_location->type = FSLocation::FS_PERMANENT_LOCAL;
     }
     ~FSPV()
     {
@@ -168,14 +168,14 @@ public:
         }
     }
     Poco::Channel* logChannel;
-    FSHelper* master;
+    std::shared_ptr<FSHelper> master;
     SHP(FSLocation) temp_location;
     SHP(FSLocation) perm_location;
 };
 
-FSHelper::FSHelper(Poco::Channel* logChannel) : pv(std::make_shared<FSPV>(this))
+FSHelper::FSHelper(Poco::Channel* logChannel) : pv(std::make_shared<FSPV>())
 {
-
+  pv->logChannel = logChannel;
 }
 
 FSHelper::~FSHelper()
@@ -201,17 +201,21 @@ void FSHelper::set_dirs(ZConstString permanent_dir, ZConstString temp_dir)
 
     fn_make_path(pv->perm_location.get());
     fn_make_path(pv->temp_location.get());
+    pv->perm_location->fshelper = shared_from_this();
+    pv->temp_location->fshelper = shared_from_this();
 }
 
 
 SHP(FSItem) FSHelper::spawn_temp(const ZConstString& fname)
 {
-    return std::make_shared<FSItem>(pv->temp_location);
+  pv->master = shared_from_this();
+  return std::make_shared<FSItem>(pv->temp_location);
 }
 
 SHP(FSItem) FSHelper::spawn_permanent(const ZConstString& fname)
 {
-    return std::make_shared<FSItem>(fname, pv->perm_location);
+  pv->master  = shared_from_this();
+  return std::make_shared<FSItem>(fname, pv->perm_location);
 }
 
 SHP(FSItem) FSHelper::store_permanently(const FSItem* item)

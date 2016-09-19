@@ -70,7 +70,6 @@ uint32_t fletcher32( uint16_t const *data, size_t words )
 Settings::Settings()
 {
   auto lk = getLocker();
-  lk.unlock();
 
   set(ZMKW_LOGPORT, ZCSTR("59000"), lk);
   set(ZMKW_LOGSERVER, ZCSTR("127.0.0.1"), lk);

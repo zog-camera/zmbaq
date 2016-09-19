@@ -5,8 +5,8 @@ if(URHO3D_DIR)
 endif()
 
 
-find_library(u3dlib NAMES Urho3D
-    PATHS
+find_library(u3dlib NAMES Urho3D libUrho3D.a
+	PATHS ${DEPENDS_ROOT}/lib/Urho3D ${DEPENDS_ROOT}/lib
     ${URHO3D_DIR}/lib/Urho3D       ${URHO3D_DIR}/lib64/Urho3D
     ${URHO3D_DIR}/lib64 ${URHO3D_DIR}/lib64/Urho3D/
     ${FFMPEG_DIR}/lib)

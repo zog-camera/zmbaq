@@ -48,7 +48,7 @@ public:
 
     enum Type{FS_VOID, FS_TEMP, FS_PERMANENT_LOCAL, FS_PERMANENT_REMOTE/*S3 or DB*/};
 
-    FSLocation(FSHelper* master);
+    explicit FSLocation(std::shared_ptr<FSHelper> master = nullptr);
     virtual ~FSLocation();
 
     /** Rssize given string and put the an absolute path.*/

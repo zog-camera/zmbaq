@@ -13,9 +13,11 @@ StreamReader::StreamReader(const std::string& name)
 bool StreamReader::open(ZConstString url)
 {
     int res = ff.open(url);
-    assert(0 == res);
+    if (0 != res)
+      return false;
     res = ff.get_video_stream_and_codecs();
-    assert(0 == res);
+    if (0 != res)
+      return false;
     ff.read_play();
     should_run = true;
     return true;
