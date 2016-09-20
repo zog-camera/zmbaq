@@ -209,7 +209,7 @@ void FSHelper::set_dirs(ZConstString permanent_dir, ZConstString temp_dir)
 SHP(FSItem) FSHelper::spawn_temp(const ZConstString& fname)
 {
   pv->master = shared_from_this();
-  return std::make_shared<FSItem>(pv->temp_location);
+  return std::make_shared<FSItem>(fname, pv->temp_location);
 }
 
 SHP(FSItem) FSHelper::spawn_permanent(const ZConstString& fname)

@@ -17,7 +17,7 @@ public:
   ZMB::av_things ff;
 
   /** Must be set before the task will go running.*/
-  Mp4WriterTask* file_pkt_q;
+  std::shared_ptr<Mp4WriterTask> file_pkt_q;
 
   AVPacket pkt;
 
@@ -31,10 +31,10 @@ public:
   void stop();
 
   //read one frame, write it syncronously
-  void rwSync();
+  bool rwSync();
 
   //read one frame, write it in another thread
-  void rwAsync();
+  bool rwAsync();
 };
 
 }

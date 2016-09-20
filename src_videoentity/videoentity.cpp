@@ -4,6 +4,16 @@
 
 namespace ZMBEntities {
 
+VideoEntity::Mutex_t& VideoEntity::mutex()
+{
+  return mu;
+}
+
+VideoEntity::Lock_t&& VideoEntity::getLocker()
+{
+  return std::move(Lock_t(mutex()));
+}
+
 
 void VideoEntity::cleanAndClear()
 {

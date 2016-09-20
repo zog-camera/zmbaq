@@ -6,10 +6,10 @@
 #include <cstdlib>
 #include <unistd.h>
 
-int main()
+int main(int argc, char** argv)
 {
   Json::Value config;
-  config[ZMB::SURV_CAM_PARAMS_PATH.begin()] = "/dev/video0";
+  config[ZMB::SURV_CAM_PARAMS_PATH.begin()] = argv[1];
   config[ZMB::SURV_CAM_PARAMS_NAME.begin()] = "camera0";
 
   ZMBEntities::VideoEntity ve;

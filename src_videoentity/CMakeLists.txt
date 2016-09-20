@@ -15,7 +15,7 @@ include_directories(../external/libv4l2cpp/inc/)
 
 add_library(videoentity STATIC ${src_lib_ve} ${src_l4v})
 
-find_library(V4_LIB NAMES log4cpp PATHS ${DEPENDS_ROOT}/lib)
+find_library(V4_LIB NAMES v4l2 PATHS ${DEPENDS_ROOT}/lib)
 find_library(LOG4_LIB NAMES log4cpp PATHS ${DEPENDS_ROOT}/lib)
 find_library(SWSCALE_LIB NAMES swscale PATHS ${DEPENDS_ROOT}/lib)
 find_library(AVDEVICE_LIB NAMES avdevice PATHS ${DEPENDS_ROOT}/lib)

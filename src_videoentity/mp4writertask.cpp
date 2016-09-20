@@ -29,13 +29,16 @@ bool Mp4WriterTask::open (const AVFormatContext *av_in_fmt_ctx,
 
 Mp4WriterTask::~Mp4WriterTask()
 {
-  pool->joinAll();
+  close();
 }
 
 void Mp4WriterTask::close()
 {
-  pool->close();
-  pool->terminateDetach();
+  if(nullptr != pool)
+    {
+      pool->close();
+      pool->terminateDetach();
+    }
 }
 
 void Mp4WriterTask::writeSync(SHP(av::Packet) pkt)

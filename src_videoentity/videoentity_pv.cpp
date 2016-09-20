@@ -30,8 +30,8 @@ public:
 
     SHP(ZMFS::FSHelper) fs_helper;
 
-    ZMBEntities::Mp4WriterTask* file_dump;
-    ZMBEntities::StreamReader* stream;
+    std::shared_ptr<ZMBEntities::Mp4WriterTask> file_dump;
+    std::shared_ptr<ZMBEntities::StreamReader> stream;
 
     SHP(ZMBCommon::ThreadsPool) pool;
 };
@@ -39,8 +39,7 @@ public:
 
 VEPV::VEPV()
 {
-    file_dump = 0;
-    stream = 0;
+
 }
 
 VEPV::~VEPV()
@@ -54,9 +53,8 @@ void VEPV::clear()
         return;
 
     stream->stop();
-    file_dump->close();
-    file_dump = 0;
-    stream = 0;
+    if(file_dump)
+      file_dump->close();
 }
 
 bool VEPV::configure(const Json::Value* jobject, std::shared_ptr<ZMBCommon::ThreadsPool> p_pool)
@@ -85,20 +83,22 @@ bool VEPV::configure(const Json::Value* jobject, std::shared_ptr<ZMBCommon::Thre
   if (ok)
     {
       _s = name.begin();
-      auto file_dump = new ZMBEntities::Mp4WriterTask();
+      file_dump.reset(new ZMBEntities::Mp4WriterTask());
       file_dump->tag = _s;
       file_dump->open(_stream->ff.get_format_ctx(), name, fs_helper);
       _stream->file_pkt_q = file_dump;
-      file_dump = file_dump;
+      stream.reset(_stream);
+      for(int i = 0; i < 100; ++i)
+        {
+          pool->submit([&](){ stream->rwAsync(); });
+        }
     }
   else
     {
       delete _stream;
       _stream = 0;
     }
-  stream = _stream;
   return ok;
-
 }
 //------------------------------------------------------------------------
 bool VEMp4WritingVisitor::visit(ZMBEntities::VideoEntity* entity, const Json::Value* jobject, bool separateThreadPool)
@@ -111,7 +111,7 @@ bool VEMp4WritingVisitor::visit(ZMBEntities::VideoEntity* entity, const Json::Va
                     std::make_shared<ZMBCommon::ThreadsPool>(2) : entity->pool);
 
   entity->getConfigFunction = [=](){ return VideoEntity::ConfigPair_t(data->cam_param, data->config); };
-  entity->cleanupMethod = [=](){ data->clear(); };
+  entity->cleanupMethod = [&]() { data->clear(); };
   return true;
 }
 //------------------------------------------------------------------------

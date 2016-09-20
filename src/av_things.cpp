@@ -144,15 +144,12 @@ struct av_things::impl
             av_codec = avcodec_find_decoder(formatContext->streams[v_stream_idx]->codecpar->codec_id);
         }
 
-        // find the decoder for the video stream
-        av_codec = avcodec_find_decoder(codecContext->codec_id);
-
         if (av_codec == NULL)
         {
             *this << ZCSTR("Error! decoder not found \n");
             return -1;
         }
-
+        codecContext = avcodec_alloc_context3(av_codec);
         int err = avcodec_open2(codecContext, av_codec, NULL);
         if(err != 0)
         {

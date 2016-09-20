@@ -164,7 +164,7 @@ struct FFileWriter::PV
             if (inFmtContext->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
             {
                 AVStream *in_stream = inFmtContext->streams[i];
-                AVStream *out_stream = avformat_new_stream(outFmtContext, inFmtContext->video_codec);
+                AVStream *out_stream = avformat_new_stream(outFmtContext, avcodec_find_encoder(in_stream->codecpar->codec_id));
 
                 if (!out_stream)
                 {
@@ -189,7 +189,9 @@ struct FFileWriter::PV
             }
         }
 
-        avformat_write_header(outFmtContext, nullptr);
+        errnum = avformat_write_header(outFmtContext, nullptr);
+        if(0 != errnum)
+          return false;
 
 #ifndef NDEBUG
         av_dump_format(outFmtContext, 0, dst.c_str(), 1);

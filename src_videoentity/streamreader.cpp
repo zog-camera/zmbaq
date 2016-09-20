@@ -34,7 +34,7 @@ void StreamReader::stop()
     should_run = false;
 }
 
-void StreamReader::rwSync()
+bool StreamReader::rwSync()
 {
   int res = ff.read_frame(&pkt);
   av::Rational tb(*ff.get_timebase());
@@ -44,11 +44,12 @@ void StreamReader::rwSync()
       auto avpkt = std::make_shared<av::Packet> (&pkt);
       avpkt->setTimeBase(tb);
       assert(avpkt->getSize() > 0);
-      file_pkt_q->writeAsync(avpkt);
+      file_pkt_q->writeSync(avpkt);
     }
+  return res >= 0;
 }
 
-void StreamReader::rwAsync()
+bool StreamReader::rwAsync()
 {
   int res = ff.read_frame(&pkt);
   av::Rational tb(*ff.get_timebase());
@@ -61,6 +62,7 @@ void StreamReader::rwAsync()
       assert(avpkt->getSize() > 0);
       file_pkt_q->writeAsync(avpkt);
     }
+  return res >= 0;
 }
 
 }//ZMBEntities
