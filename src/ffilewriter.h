@@ -34,78 +34,81 @@ namespace ZMB {
 class FFileWriterBase
 {
 public:
-    std::function<void(FFileWriterBase* fptr, const std::string& msg)>
-        sig_error;
+  typedef std::unique_lock<std::mutex> Locker_t;
 
-    /** */
-    void raise_fatal_error();
+  std::function<void(FFileWriterBase* fptr, const std::string& msg)>
+  sig_error;
 
-    FFileWriterBase();
-    virtual ~FFileWriterBase();
+  /** */
+  void raise_fatal_error();
 
-    virtual bool open(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst)
-    {raise_fatal_error();}
+  FFileWriterBase();
+  virtual ~FFileWriterBase();
 
-    virtual void close() {raise_fatal_error();}
+  virtual bool open(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst)
+  {raise_fatal_error();}
 
-    /** child's method may increase pb_file_size. */
-    virtual void write(AVPacket *input_avpacket)
-    {raise_fatal_error();}
+  virtual void close() {raise_fatal_error();}
 
-    /** child's method may increase pb_file_size. */
-    virtual void write(std::shared_ptr<av::Packet> pkt)
-    {raise_fatal_error();}
+  /** child's method may increase pb_file_size. */
+  virtual void write(AVPacket *input_avpacket)
+  {raise_fatal_error();}
+
+  /** child's method may increase pb_file_size. */
+  virtual void write(std::shared_ptr<av::Packet> pkt)
+  {raise_fatal_error();}
 
 
-    bool empty() const {return !is_open;}
-    size_t file_size() const {return pb_file_size;}
-    const std::string& path() const {return dest;}
+  bool empty() const {return !is_open;}
+  size_t file_size() const {return pb_file_size.load();}
+  const std::string& path() const {return dest;}
 
-    /** just holds the reference. May be NULL if true == empty().*/
-    std::shared_ptr<ZMFS::FSItem> fs_item;
+  std::mutex& mutex();
+  std::unique_lock<std::mutex>&& locker();
 
-    std::shared_ptr<ZMB::PacketsPocket> pocket;//< frame buffering.
+  /** just holds the reference. May be NULL if true == empty().*/
+  std::shared_ptr<ZMFS::FSItem> fs_item;
 
-    size_t pb_file_size;
+  std::shared_ptr<ZMB::PacketsPocket> pocket;//< frame buffering.
+
+  std::atomic_uint pb_file_size;
 protected:
-    std::string dest;
-    bool is_open;
+  std::mutex mu;
+  std::string dest;
+  bool is_open;
 
-    void dispatch_error(const std::string& msg)
-    {
-        if (nullptr != sig_error)
-            sig_error(this, msg);
-    }
+  void dispatch_error(const std::string& msg)
+  {
+    if (nullptr != sig_error)
+      sig_error(this, msg);
+  }
 
 };
 
-}
 //-------------------------------------------------------------------------
-
-namespace ZMB {
 
 /** Writer AV packets to file with container like .mp4 */
 class FFileWriter :  public ZMB::FFileWriterBase
 {
 
 public:
-    FFileWriter();
+  FFileWriter();
 
-    FFileWriter(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst);
+  FFileWriter(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst);
 
-    /** Warning! If inherited, you clean up this stuff self.*/
-    virtual ~FFileWriter();
+  /** Warning! If inherited, you clean up this stuff self.*/
+  virtual ~FFileWriter();
 
-    /** Synchronous and not thread-safe. Makes a copy of the packet.*/
-    virtual bool open(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst);
-    void write(AVPacket *input_avpacket);
-    void write(std::shared_ptr<av::Packet> pkt);
-    void close();
+  /** Synchronous and not thread-safe. Makes a copy of the packet.*/
+  virtual bool open(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst);
+  void write(AVPacket *input_avpacket);
+  void write(std::shared_ptr<av::Packet> pkt);
+  void close();
 
 
 private:
-    struct PV;
-    std::shared_ptr<PV> pv;
+  struct PV;
+  std::shared_ptr<PV> pv;
 };
 
 typedef std::shared_ptr<FFileWriter> FFileWriterPtr;

@@ -32,10 +32,12 @@ struct _Mp4TaskPriv
   std::function<ZMB::FFileWriterBase*()> fn_spawn_writer;
   std::atomic_uint defaultChunkSize;
 
+  std::mutex mu;
+
   void write();
 };
 
-class Mp4WriterTask
+class Mp4WriterTask : public ZMB::noncopyable
 {
 
 public:

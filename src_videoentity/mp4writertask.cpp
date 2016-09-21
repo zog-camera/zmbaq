@@ -52,12 +52,15 @@ void Mp4WriterTask::writeAsync(SHP(av::Packet) pkt)
     {
       pool = std::make_shared<ZMBCommon::ThreadsPool>(1);
     }
+  assert(false);//DEBUG and fix it!
   task.packet = pkt;
   pool->submit([=](){ task.write(); });
 }
 
 void _Mp4TaskPriv::write()
 {
+  std::lock_guard<std::mutex>lk(mu); (void)lk;
+
   if (nullptr == packet)
     {
       return;
@@ -94,6 +97,7 @@ void _Mp4TaskPriv::write()
   auto fn_dump = [&]()
   {
       /** TODO: debug this2. */
+      auto lk = file_writer->locker();
       file_writer->pocket->dump_packets(time_tracking, (void*)file_writer.get());
   };
 
@@ -102,6 +106,7 @@ void _Mp4TaskPriv::write()
       if (nullptr != file)
         {
           fs_helper->store_permanently(file.get());
+          auto lk = file_writer->locker();
           file_writer->close();
         }
       fn_gen_name();
@@ -111,6 +116,7 @@ void _Mp4TaskPriv::write()
 
       //close old and create new writer context:
       file_writer.reset(fn_spawn_writer());
+      auto lk = file_writer->locker();
       file_writer->fs_item = file;
       file_writer->open(av_ctx, ZMBCommon::bindZCTo(abs_name));
       std::cout << "Started writing file: " << abs_name << "\n";
@@ -120,12 +126,12 @@ void _Mp4TaskPriv::write()
       assert(nullptr != file);
     };
 
-  auto fn_push = [](std::shared_ptr<ZMB::FFileWriterBase>& ff,
-      SHP(av::Packet)& _item )
+  auto fn_push = [](ZMB::FFileWriterBase* ff, SHP(av::Packet)& _item )
   {
     /** TODO: debug this. */
+    auto lk = ff->locker();
     ff->pocket->push(_item, true);
-    ff->pb_file_size += _item->getSize();
+    ff->pb_file_size.fetch_add(_item->getSize());
 
     //        ff->write(_item->getAVPacket());
   };
@@ -144,7 +150,7 @@ void _Mp4TaskPriv::write()
   assert(item->getPts() > 0);
   assert(sz != 0);
 
-  fn_push(file_writer, item);
+  fn_push(file_writer.get(), item);
   if (item->isKeyPacket())
     fn_dump();
 
