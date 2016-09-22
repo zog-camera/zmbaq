@@ -91,13 +91,22 @@ namespace ZMB {
 FFileWriterBase::FFileWriterBase()
 {
     is_open = false;
-    pb_file_size = 0u;
+    pb_file_size.store(0u);
     pocket = std::make_shared<ZMB::PacketsPocket>();
 }
 
 FFileWriterBase::~FFileWriterBase()
 {
 
+}
+
+std::mutex& FFileWriterBase::mutex()
+{
+  return mu;
+}
+std::unique_lock<std::mutex>&& FFileWriterBase::locker()
+{
+  return std::move(std::unique_lock<std::mutex>(mu));
 }
 
 void FFileWriterBase::raise_fatal_error()
@@ -208,7 +217,7 @@ _on_fail_:
     {
         if (nullptr != outFmtContext)
         {
-            if (!outFmtContext->pb->error)
+            if (!outFmtContext->pb->error && frame_cnt > 0)
             {
                 av_write_trailer(outFmtContext);
             }
@@ -287,7 +296,7 @@ _on_fail_:
 
         /** file size indication. Note: always access packet data before *_write_frame()
          *  functions are called, they purge the packet's payload when done.*/
-        d_parent->pb_file_size += opkt->size;
+        d_parent->pb_file_size.fetch_add(opkt->size);
 
         av_interleaved_write_frame(outFmtContext, opkt);
 
@@ -333,7 +342,6 @@ bool FFileWriter::open(const AVFormatContext *av_in_fmt_ctx, const ZConstString&
         pv.reset();
     return is_open;
 }
-
 
 void FFileWriter::write(AVPacket* input_avpacket)
 {
