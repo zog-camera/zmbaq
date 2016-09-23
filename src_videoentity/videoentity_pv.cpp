@@ -85,7 +85,7 @@ bool VEPV::configure(const Json::Value* jobject, std::shared_ptr<ZMBCommon::Thre
       _s = name.begin();
       file_dump.reset(new ZMBEntities::Mp4WriterTask());
       file_dump->tag = _s;
-      file_dump->open(_stream->ff.get_format_ctx(), name, fs_helper);
+      file_dump->open(_stream->ff.get_format_ctx(), name, *fs_helper);
       _stream->file_pkt_q = file_dump;
       stream.reset(_stream);
       for(int i = 0; i < 100; ++i)

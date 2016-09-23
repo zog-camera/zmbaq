@@ -147,10 +147,9 @@ SHP(ZMB::FFileWriterBase) MediaHandle::write_file(SHP(ZMFS::FSItem) file)
     if (nullptr != media_stream)
     {
         std::string dest;
-        file->fslocation->absolute_path(dest, ZMBCommon::bindZCTo(file->fname));
+        file->fslocation.absolute_path(dest, ZMBCommon::bindZCTo(file->fname));
         auto fwriter = media_stream->write_file(ZConstString(dest.data(), dest.size()));
         assert(nullptr != fwriter);
-        fwriter->fs_item = file;
         return fwriter;
     }
     else

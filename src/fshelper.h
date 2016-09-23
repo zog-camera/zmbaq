@@ -48,21 +48,17 @@ public:
 
     enum Type{FS_VOID, FS_TEMP, FS_PERMANENT_LOCAL, FS_PERMANENT_REMOTE/*S3 or DB*/};
 
-    explicit FSLocation(std::shared_ptr<FSHelper> master = nullptr);
+    explicit FSLocation();
     virtual ~FSLocation();
 
     /** Rssize given string and put the an absolute path.*/
-    void absolute_path(std::string& str, const ZConstString& fname);
+    void absolute_path(std::string& str, const ZConstString& fname) const;
 
     /** The provided unsafe buffer must contain enough space!*/
-    bool absolute_path(ZUnsafeBuf* str, const ZConstString& fname);
+    bool absolute_path(ZUnsafeBuf& str, const ZConstString& fname) const;
 
-    SHP(FSHelper) fshelper;
     Type type;
-    ZMBCommon::MByteArray location; //< A path to a directory or remote URL
-
-    std::mutex mut;
-    char temp[1024];
+    std::string location; //< A path to a directory or remote URL
 };
 
 //---------------------------------------------------------
@@ -70,13 +66,15 @@ class FSItem
 {
 public:
 
-  explicit FSItem(SHP(FSLocation) locat = 0);
+  explicit FSItem(FSLocation locat = FSLocation());
 
-  /** will not copy on_destruction() callback, set it manually.*/
+  /** copy ctor will not copy on_destruction() callback, set it manually.*/
   FSItem(const FSItem& other);
 
+  FSItem(const ZConstString& file_name, FSLocation locat = FSLocation());
 
-  FSItem(const ZConstString& file_name, SHP(FSLocation) locat = 0);
+  /** will not copy on_destruction() callback, set it manually.*/
+  FSItem& operator = (const FSItem& other);
 
   virtual ~FSItem();
 
@@ -87,17 +85,20 @@ public:
      *  jo["filename"] = "filename";
      *  jo["location"] = "/location";
      *  jo["type"] = "db" || "local" || "remote"; */
-  void to_json(Json::Value* jo);
+  void to_json(Json::Value* jo) const;
 
-  SHP(FSLocation) fslocation;
+  //set permanent/temporary location depending on this->fslocation->typ
+  bool setLocation(FSHelper* helper);
+
+  FSLocation fslocation;
   std::string fname; //< in default constructor has 0-len, must be set.
   std::atomic_ulong fsize;
 };
 //---------------------------------------------------------
-class FSHelper : public std::enable_shared_from_this<FSHelper>
+class FSHelper
 {
 public:
-    std::function<void(SHP(FSHelper), SHP(FSItem))> sig_file_stored;
+    std::function<void(const FSHelper&, const FSItem&)> sig_file_stored;
 
     explicit FSHelper(Poco::Channel* logChannel = nullptr);
     virtual ~FSHelper();
@@ -107,22 +108,22 @@ public:
                   ZConstString temp_dir = ZConstString());
 
     /** Obtain full paths for temporary file creation.*/
-    SHP(FSItem) spawn_temp(const ZConstString& fname);
+    FSItem&& spawn_temp(const ZConstString& fname);
 
     /** Obtain full paths for permanent file creation.*/
-    SHP(FSItem) spawn_permanent(const ZConstString& fname);
+    FSItem&& spawn_permanent(const ZConstString& fname);
 
     /** Move temporary file to permanent storage.
      * @param current item location.
      * @return new item values. */
-    SHP(FSItem) store_permanently(const FSItem* item);
+    FSItem&& store_permanently(const FSItem* item);
 
     /** Remove the file if it's temporary.*/
     bool utilize(const FSItem* item);
 
-private:
-    class FSPV;
-    SHP(FSPV) pv;
+    Poco::Channel* logChannelPtr;
+    FSLocation temp_location;
+    FSLocation perm_location;
 };
 
 }//ZMFS

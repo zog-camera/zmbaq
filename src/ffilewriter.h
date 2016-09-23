@@ -31,7 +31,7 @@ namespace ZMB {
 
 /** Not pure virtual base. throws errors in runtime if pseudo-API
  * methods are called.*/
-class FFileWriterBase
+class FFileWriterBase : public ZMBCommon::noncopyable
 {
 public:
   typedef std::unique_lock<std::mutex> Locker_t;
@@ -67,11 +67,14 @@ public:
   std::unique_lock<std::mutex>&& locker();
 
   /** just holds the reference. May be NULL if true == empty().*/
-  std::shared_ptr<ZMFS::FSItem> fs_item;
 
-  std::shared_ptr<ZMB::PacketsPocket> pocket;//< frame buffering.
+  ZMB::PacketsPocket pocket;//< frame buffering.
+  ZMB::PacketsPocket::seq_key_t prevPktTimestamp;//< you modify it by hand
+
+  void dumpPocketContent(ZMB::PacketsPocket::seq_key_t lastPacketTs);
 
   std::atomic_uint pb_file_size;
+
 protected:
   std::mutex mu;
   std::string dest;

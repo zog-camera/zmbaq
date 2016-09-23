@@ -92,7 +92,6 @@ FFileWriterBase::FFileWriterBase()
 {
     is_open = false;
     pb_file_size.store(0u);
-    pocket = std::make_shared<ZMB::PacketsPocket>();
 }
 
 FFileWriterBase::~FFileWriterBase()
@@ -113,6 +112,11 @@ void FFileWriterBase::raise_fatal_error()
 {
     throw std::runtime_error("calling method that was not implemented.");
     assert(false);
+}
+
+void FFileWriterBase::dumpPocketContent(ZMB::PacketsPocket::seq_key_t lastPacketTs)
+{
+  pocket.dump_packets(lastPacketTs, (void*)this);
 }
 //===============================================================================
 

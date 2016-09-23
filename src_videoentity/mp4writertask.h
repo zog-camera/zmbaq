@@ -22,19 +22,23 @@ struct _Mp4TaskPriv
     defaultChunkSize.store(64 * 1024 * 1024);
   }
 
-  SHP(ZMFS::FSHelper) fs_helper;
-  SHP(ZMFS::FSItem) file;
+  ZMFS::FSHelper fs_helper;
+  ZMFS::FSItem file;
+
   std::string camera_name;
   std::shared_ptr<ZMB::FFileWriterBase> file_writer;
   const AVFormatContext* av_ctx;
   SHP(av::Packet) packet;
 
-  std::function<ZMB::FFileWriterBase*()> fn_spawn_writer;
   std::atomic_uint defaultChunkSize;
 
   std::mutex mu;
 
+  std::string makeFileName() const;
+
   void write();
+  ZMB::FFileWriter* fn_spawn_writer();
+  void fn_make_file();
 };
 
 class Mp4WriterTask : public ZMB::noncopyable
@@ -52,7 +56,7 @@ public:
 
     bool open (const AVFormatContext *av_in_fmt_ctx,
                ZConstString cam_name,
-               std::shared_ptr<ZMFS::FSHelper> fsh);
+               ZMFS::FSHelper fsh = ZMFS::FSHelper());
 
     void close();
 
@@ -61,7 +65,7 @@ public:
 
 private:
     std::shared_ptr<ZMBCommon::ThreadsPool> pool;
-    _Mp4TaskPriv task;
+    std::shared_ptr<_Mp4TaskPriv> task;
 
 };
 
