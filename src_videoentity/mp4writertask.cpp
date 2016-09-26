@@ -10,13 +10,131 @@ namespace ZMBEntities {
 
 using namespace ZMBCommon;
 
-Mp4WriterTask::Mp4WriterTask()
+
+
+
+
+struct FileWriterDeleter
 {
+  void operator()(ZMB::FFileWriter* p)
+  {
+    p->dumpPocketContent(p->prevPktTimestamp);
+  }
+};
+//------------------------------------------------------------
+struct _Mp4TaskPriv
+{
+  _Mp4TaskPriv() : av_ctx(nullptr) {
+    defaultChunkSize.store(64 * 1024 * 1024);
+  }
+
+  ZMFS::FSHelper fs_helper;
+  ZMFS::FSItem file;
+
+  std::string camera_name;
+  std::shared_ptr<ZMB::FFileWriterBase> fileWriterMp4;
+  const AVFormatContext* av_ctx;
+
+  std::atomic_uint defaultChunkSize;
+
+
+  std::string makeFileName() const;
+
+  void write(SHP(av::Packet) packet);
+  void fn_make_file();
+
+  std::unique_lock<std::mutex>&& getLocker() {return std::move(std::unique_lock<std::mutex>(mu));}
+  std::mutex mu;
+};
+//------------------------------------------------------------
+void _Mp4TaskPriv::fn_make_file()
+{
+  std::string abs_name;
+  auto tasklk = getLocker(); (void)tasklk;
+
+  std::string name (makeFileName());
+  file = fs_helper.spawn_temp(ZMBCommon::bindZCTo(name));
+  assert(!file.fname.empty());
+  file.fslocation.absolute_path(abs_name, ZMBCommon::bindZCTo(file.fname));
+
+
+  //close old and create new writer context:
+
+  auto pfile = new ZMB::FFileWriter;
+  auto lk = pfile->locker(); (void)lk;
+  fileWriterMp4 = std::shared_ptr<ZMB::FFileWriter>(pfile, FileWriterDeleter());
+  fileWriterMp4->open(av_ctx, ZMBCommon::bindZCTo(abs_name));
+  std::cout << "Started writing file: " << abs_name << "\n";
 }
 
-ZMB::FFileWriter* _Mp4TaskPriv::fn_spawn_writer()
+
+void _Mp4TaskPriv::write(std::shared_ptr<av::Packet> packet)
 {
-  return new ZMB::FFileWriter;
+
+  if (nullptr == packet)
+    {
+      return;
+    }
+
+  if (nullptr == fileWriterMp4) { fn_make_file(); }
+
+  SHP(av::Packet) item = packet;
+  size_t sz = 0;
+
+  {//push the packet into the cache
+    auto lk = fileWriterMp4->locker(); (void)lk;
+    AVPacket* pkt = item->getAVPacket();
+    size_t sz = pkt->size;
+    sz += (0 == sz)? pkt->buf->size: 0;
+
+    fileWriterMp4->prevPktTimestamp = fileWriterMp4->pocket.push(packet);
+    fileWriterMp4->pb_file_size.fetch_add(item->getSize());
+
+    if (item->isKeyPacket())
+    {//dump on key frames
+      fileWriterMp4->dumpPocketContent(fileWriterMp4->prevPktTimestamp);
+    }
+
+    sz += fileWriterMp4->file_size();
+  }
+
+  if (sz > defaultChunkSize)
+    {//create multiple chunks instead onf 1 big file:
+      auto lk = fileWriterMp4->locker();
+        fs_helper.store_permanently(&file);
+      lk.unlock();
+
+      //create new file:
+      fn_make_file();
+    }
+  item.reset();
+}
+
+
+
+std::string _Mp4TaskPriv::makeFileName() const
+{
+  //restore initial values:
+  std::string name;
+  name.reserve(256);
+  name += camera_name;
+
+  std::array<char,48> tmp;
+  //format the filename:
+  Poco::DateTime dt; //<current time on construction
+  tmp.fill(0x00);
+  snprintf(tmp.data(), 13,"_%02d.%02d.%04d_", dt.day(), dt.month(), dt.year());
+  name += tmp.data();
+  tmp.fill(0x00);
+  snprintf(tmp.data(), 18, "_%02d:%02d:%02d.%03d.flv",
+           dt.hour(), dt.minute(),
+           dt.second(), dt.millisecond());
+  name += tmp.data();
+  return name;
+}
+//============================================================
+Mp4WriterTask::Mp4WriterTask()
+{
 }
 
 bool Mp4WriterTask::open (const AVFormatContext *av_in_fmt_ctx,
@@ -46,7 +164,7 @@ void Mp4WriterTask::close()
 
 void Mp4WriterTask::writeSync(SHP(av::Packet) pkt)
 {
-  task->write();
+  task->write(pkt);
 }
 
 void Mp4WriterTask::writeAsync(SHP(av::Packet) pkt)
@@ -55,99 +173,20 @@ void Mp4WriterTask::writeAsync(SHP(av::Packet) pkt)
     {
       pool = std::make_shared<ZMBCommon::ThreadsPool>(1);
     }
-  assert(false);//DEBUG and fix it!
-  task->packet = pkt;
-  pool->submit([=](){ task->write(); });
+  ZMBCommon::CallableDoubleFunc dfunc;
+  ::snprintf(dfunc.tag.data(), dfunc.tag.size(), "writeAsync()");
+  dfunc.functor = [this,pkt](){ writeSync(pkt); };
+  pool->submit(dfunc);
 }
 
-std::string _Mp4TaskPriv::makeFileName() const
+void Mp4WriterTask::imbue(std::shared_ptr<ZMBCommon::ThreadsPool> neuPool)
 {
-  //restore initial values:
-  std::string name;
-  name.reserve(256);
-  name += camera_name;
-
-  std::array<char,48> tmp;
-  //format the filename:
-  Poco::DateTime dt; //<current time on construction
-  tmp.fill(0x00);
-  snprintf(tmp.data(), 13,"_%02d.%02d.%04d_", dt.day(), dt.month(), dt.year());
-  name += tmp.data();
-  tmp.fill(0x00);
-  snprintf(tmp.data(), 18, "_%02d:%02d:%02d.%03d.flv",
-           dt.hour(), dt.minute(),
-           dt.second(), dt.millisecond());
-  name += tmp.data();
-  return name;
-}
-
-struct FileWriterDeleter
-{
-  void operator()(ZMB::FFileWriter* p)
-  {
-    p->dumpPocketContent(p->prevPktTimestamp);
-  }
-};
-
-void _Mp4TaskPriv::fn_make_file()
-{
-  std::lock_guard<std::mutex>tasklk(mu); (void)tasklk;
-
-  std::string name = std::move(makeFileName());
-  std::string abs_name;
-  file = std::move(fs_helper.spawn_temp(ZMBCommon::bindZCTo(name)));
-  file.fslocation.absolute_path(abs_name, ZMBCommon::bindZCTo(file.fname));
-
-
-  //close old and create new writer context:
-
-  auto pfile = fn_spawn_writer();
-  auto lk = pfile->locker(); (void)lk;
-  file_writer = std::shared_ptr<ZMB::FFileWriter>(pfile, FileWriterDeleter());
-  file_writer->open(av_ctx, ZMBCommon::bindZCTo(abs_name));
-  std::cout << "Started writing file: " << abs_name << "\n";
-}
-
-
-void _Mp4TaskPriv::write()
-{
-
-  if (nullptr == packet)
+  if(nullptr != pool)
     {
-      return;
+      pool->close();
+      pool->joinAll();
     }
-
-  if (nullptr == file_writer) { fn_make_file(); }
-
-  SHP(av::Packet)& item (this->packet);
-  AVPacket* pkt = item->getAVPacket();
-  size_t sz = pkt->size;
-  sz += (0 == sz)? pkt->buf->size: 0;
-
-  {//push the packet into the cache
-    auto lk = file_writer->locker(); (void)lk;
-    file_writer->prevPktTimestamp = file_writer->pocket.push(packet);
-    file_writer->pb_file_size.fetch_add(item->getSize());
-
-    if (item->isKeyPacket())
-    {//dump on key frames
-      file_writer->dumpPocketContent(file_writer->prevPktTimestamp);
-    }
-
-    sz += file_writer->file_size();
-  }
-
-  if (sz > defaultChunkSize)
-    {//create multiple chunks instead onf 1 big file:
-      auto lk = file_writer->locker();
-        fs_helper.store_permanently(&file);
-      lk.unlock();
-
-      //create new file:
-      fn_make_file();
-    }
-  item.reset();
+  pool = neuPool;
 }
-
 
 }//ZMBEntities

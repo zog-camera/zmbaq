@@ -34,25 +34,16 @@ FSItem::FSItem(const ZConstString& file_name, FSLocation locat)
     fname = std::move(std::string(file_name.begin(), file_name.size()));
 }
 
-FSItem& FSItem::operator = (const FSItem& other)
-{
-  fslocation = other.fslocation;
-  fname = other.fname;
-  fsize.store(other.fsize.load());
-  return *this;
-}
-
 FSItem::FSItem(const FSItem& other)
 {
   this->operator =(other);
 }
 
-FSItem::~FSItem()
+FSItem& FSItem::operator = (const FSItem& other)
 {
-  if(nullptr != on_destruction)
-    {
-      on_destruction();
-    }
+  fslocation = other.fslocation;
+  fname = other.fname;
+  fsize.store(other.fsize.load());
 }
 
 void FSItem::to_json(Json::Value* jo) const
@@ -106,6 +97,7 @@ FSLocation::~FSLocation()
 
 void FSLocation::absolute_path(std::string& str, const ZConstString& fname) const
 {
+  assert(!fname.empty());
   str.reserve(location.size() + 1 + fname.size());
   str += location;
   str += dir_path_sep;
@@ -114,14 +106,15 @@ void FSLocation::absolute_path(std::string& str, const ZConstString& fname) cons
 
 bool FSLocation::absolute_path(ZMBCommon::ZUnsafeBuf& str, const ZConstString& fname) const
 {
-    if (str.size() < (1 + fname.size() + location.size()) )
+  assert(!fname.empty());
+  if (str.size() < (1 + fname.size() + location.size()) )
     { return false; }
-    char* end = nullptr;
-    str.read(&end, ZMBCommon::bindZCTo(location));
-    *(end) = dir_path_sep; ++end;
-    str.read(&end, fname, end);
-    str.len = end - str.begin();
-    return true;
+  char* end = nullptr;
+  str.read(&end, ZMBCommon::bindZCTo(location));
+  *(end) = dir_path_sep; ++end;
+  str.read(&end, fname, end);
+  str.len = end - str.begin();
+  return true;
 }
 // path = location + item_fname
 static void make_item_abspath(std::string& path, const FSItem* item)

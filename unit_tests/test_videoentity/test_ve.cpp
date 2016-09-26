@@ -18,7 +18,7 @@ int main(int argc, char** argv)
   ZMBEntities::VEMp4WritingVisitor visitor;
   visitor.visit(&ve, &config);
 
-  ::sleep(4);
+  ::sleep(100);
 
   ZMBEntities::VECleanupVisitor cleaner;
   cleaner.visit(&ve);
