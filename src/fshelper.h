@@ -49,6 +49,7 @@ public:
     enum Type{FS_VOID, FS_TEMP, FS_PERMANENT_LOCAL, FS_PERMANENT_REMOTE/*S3 or DB*/};
 
     explicit FSLocation();
+    FSLocation(const FSLocation& other) = default;
     virtual ~FSLocation();
 
     /** Rssize given string and put the an absolute path.*/
@@ -70,15 +71,10 @@ public:
 
   /** copy ctor will not copy on_destruction() callback, set it manually.*/
   FSItem(const FSItem& other);
+  FSItem& operator = (const FSItem& other);
 
   FSItem(const ZConstString& file_name, FSLocation locat = FSLocation());
 
-  /** will not copy on_destruction() callback, set it manually.*/
-  FSItem& operator = (const FSItem& other);
-
-  virtual ~FSItem();
-
-  std::function<void()> on_destruction;
 
   /** Exports these fields to Json::Value:
      *  jo["path"] = "full path";

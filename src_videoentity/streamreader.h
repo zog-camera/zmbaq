@@ -19,7 +19,6 @@ public:
   /** Must be set before the task will go running.*/
   std::shared_ptr<Mp4WriterTask> file_pkt_q;
 
-  AVPacket pkt;
 
   bool should_run;
 
@@ -34,7 +33,17 @@ public:
   bool rwSync();
 
   //read one frame, write it in another thread
+  bool readSyncWriteAsync();
+
+  //use tasks to read & write the frame
   bool rwAsync();
+
+  /** take the provided pool for the tasks
+    and delete the internal one*/
+  void imbue(std::shared_ptr<ZMBCommon::ThreadsPool> neuPool);
+
+  std::shared_ptr<ZMBCommon::ThreadsPool> pool;
+
 };
 
 }

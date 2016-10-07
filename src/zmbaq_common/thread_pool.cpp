@@ -52,13 +52,14 @@ struct Maker
     for(; pos < localArray.size() && !term_flag; ++pos)
       {
         CallableDoubleFunc& pair(localArray[pos]);
-        try {
+        try
+        {
           if (nullptr != pair.functor)
             pair.functor();
         }
         catch(const std::exception& ex)
         {
-          if (pair.cbOnException)
+          if (nullptr != pair.cbOnException)
             pair.cbOnException(ex);
         }
       }//for
