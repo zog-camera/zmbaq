@@ -152,18 +152,15 @@ SHP(ZMB::FFileWriterBase) MediaHandle::write_file(SHP(ZMFS::FSItem) file)
         assert(nullptr != fwriter);
         return fwriter;
     }
-    else
-    {
-        //return empty writer:
-        return std::make_shared<ZMB::FFileWriterBase>();
-    }
+    //return empty writer:
+    return nullptr;
 }
 
 SHP(ZMB::FFileWriterBase) MediaHandle::stop_file()
 {
     if (nullptr != media_stream)
     {
-        auto fw = media_stream->stop_file();
+        auto fw = media_stream->stopFile();
         sig_file_written(shared_from_this(), fw);
         return fw;
     }

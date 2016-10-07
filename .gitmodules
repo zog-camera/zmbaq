@@ -1,3 +1,6 @@
 [submodule "external/libv4l2cpp"]
 	path = external/libv4l2cpp
 	url = https://github.com/mpromonet/libv4l2cpp.git
+[submodule "external/avcpp"]
+	path = external/avcpp
+	url = https://github.com/h4tr3d/avcpp.git

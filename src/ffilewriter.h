@@ -45,18 +45,15 @@ public:
   FFileWriterBase();
   virtual ~FFileWriterBase();
 
-  virtual bool open(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst)
-  {raise_fatal_error();}
+  virtual bool open(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst) = 0;
 
-  virtual void close() {raise_fatal_error();}
-
-  /** child's method may increase pb_file_size. */
-  virtual void write(AVPacket *input_avpacket)
-  {raise_fatal_error();}
+  virtual void close() = 0;
 
   /** child's method may increase pb_file_size. */
-  virtual void write(std::shared_ptr<av::Packet> pkt)
-  {raise_fatal_error();}
+  virtual void write(AVPacket *input_avpacket) = 0;
+
+  /** child's method may increase pb_file_size. */
+  virtual void write(std::shared_ptr<av::Packet> pkt) = 0;
 
 
   bool empty() const {return !is_open;}

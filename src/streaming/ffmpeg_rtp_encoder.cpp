@@ -122,8 +122,7 @@ std::string ffmpeg_rtp_encoder::get_sprop_parameters(glm::ivec2 encoded_frame_si
   test.create_stream("127.0.0.1", rnd_port++,
                      encoded_frame_size.x, encoded_frame_size.y);
 
-  AVCodecContext* ctx = test.video_st->codec;
-  char* sprop = extradata2psets(ctx);
+  char* sprop = extradata2psets(test.video_st->codec);
   std::string props = (sprop);
   if (nullptr != sprop)
     {
@@ -140,16 +139,16 @@ ZMB::MImage ffmpeg_rtp_encoder::push(ZMB::MImage inputData)
   auto lk = inputData.getLocker();
   auto dstlock = frameImage.getLocker();
 
-  AVCodecContext* c = video_st->codec;
+  AVCodecParameters* par = video_st->codecpar;
 
   auto _pic = frameImage.get();
-  if (frameImage.empty() || _pic->fmt() != c->pix_fmt
-      || _pic->w() != c->width || _pic->h() != c->height)
+  if (frameImage.empty() || _pic->fmt() != par->format
+      || _pic->w() != par->width || _pic->h() != par->height)
     {
       std::shared_ptr<AVFrame> pframe = std::shared_ptr<AVFrame>(av_frame_alloc(), ZMB::FrameDeleter());
 
       auto _inpPic = inputData.get();
-      if (c->pix_fmt == _inpPic->fmt() && c->width == _inpPic->w() && c->height == _inpPic->h())
+      if (par->format == _inpPic->fmt() && par->width == _inpPic->w() && par->height == _inpPic->h())
         {
           frameImage = inputData;
           _pic = _inpPic;
@@ -157,13 +156,13 @@ ZMB::MImage ffmpeg_rtp_encoder::push(ZMB::MImage inputData)
       else
         {
           frameImage.imbue(pframe, dstlock);
-          frameImage.create(ZMB::MSize(c->width, c->height), c->pix_fmt, dstlock);
+          frameImage.create(ZMB::MSize(par->width, par->height), par->format, dstlock);
         }
     }
   auto pframe = frameImage.getFrame(dstlock);
-  pframe->format =  c->pix_fmt;
-  pframe->width  = c->width;
-  pframe->height = c->height;
+  pframe->format =  par->format;
+  pframe->width  = par->width;
+  pframe->height = par->height;
   ::memcpy(pframe->data, _pic->dataSlicesArray.data(), sizeof(pframe->data));
   ::memcpy(pframe->linesize, _pic->stridesArray.data(), sizeof(pframe->linesize));
   return frameImage;
@@ -277,6 +276,8 @@ bool ffmpeg_rtp_encoder::write_video_frame(AVFormatContext *oc, AVStream *st, in
         auto lk = frameImage.getLocker();
         auto framePtr = frameImage.getFrame(lk);
         framePtr->pts = frame_count;
+        /**TODO: consider using avcodec_send_frame() */
+//        ret = avcodec_send_frame(c, framePtr.get());
         ret = avcodec_encode_video2(c, pkt.get(), flush ? NULL : framePtr.get(), &got_packet);
 
         if (ret >= 0)

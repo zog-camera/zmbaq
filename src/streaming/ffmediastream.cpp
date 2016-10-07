@@ -194,20 +194,19 @@ glm::ivec2 ffmediastream::encoded_frame_size() const
 
 SHP(ZMB::FFileWriterBase) ffmediastream::write_file(const ZConstString& fname)
 {
-    p_file = (nullptr != pv?
-                pv->write_file(fname) : std::make_shared<ZMB::FFileWriterBase>(/*empty file rec*/));
-    return p_file;
+    curFileRef = (nullptr != pv)? pv->write_file(fname) : nullptr;
+    return curFileRef;
 }
 
 /** Stop dump to file.*/
-SHP(ZMB::FFileWriterBase) ffmediastream::stop_file()
+SHP(ZMB::FFileWriterBase) ffmediastream::stopFile()
 {
     if (nullptr != pv)
     {
         pv->stop_file();
-        if (nullptr != cb_file_written) cb_file_written(this, p_file);
+        if (nullptr != cb_file_written) cb_file_written(this, curFileRef);
     }
-    return p_file;
+    return curFileRef;
 }
 
 std::string ffmediastream::get_sprop() const

@@ -195,7 +195,7 @@ struct FFileWriter::PV
         {
             if (avio_open(&outFmtContext->pb, dst.c_str(), AVIO_FLAG_WRITE) < 0)
             {
-                ZMBCommon::MByteArray msg("Could not open output: ");
+                std::string msg("Could not open output: ");
                 msg += dst;
                 d_parent->dispatch_error(msg);
                 goto _on_fail_;
@@ -228,13 +228,6 @@ _on_fail_:
 
             if ((outFmtContext->pb && !(outFmtContext->oformat->flags & AVFMT_NOFILE)))
             {
-
-                /* Free the stream codecs. */
-                for (unsigned i = 0; i < outFmtContext->nb_streams; i++)
-                {
-                    avcodec_close(outFmtContext->streams[i]->codec);
-                }
-
                 avio_closep(&outFmtContext->pb);
             }            
 
@@ -260,10 +253,6 @@ _on_fail_:
             if (!ok) return;
         }
         int av_stream_idx = input_avpacket->stream_index;
-        const AVCodecContext *in_codec_ctx  = inFmtContext->streams[av_stream_idx]->codec;
-        const AVCodecContext *out_codec_ctx = outFmtContext->streams[0]->codec;
-
-        assert(in_codec_ctx->codec_id == out_codec_ctx->codec_id);
 
         AVStream *in_stream  = inFmtContext->streams[av_stream_idx];
         AVStream *out_stream = outFmtContext->streams[0];

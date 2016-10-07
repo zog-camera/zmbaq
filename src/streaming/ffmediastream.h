@@ -49,7 +49,7 @@ public:
     /** Triggered on first input pkt/frame, when the stream is actually starting.*/
     std::function<void(ffmediastream*, SHP(Json::Value))> cb_stream_created;
 
-    /** Triggered when file write has stopped: * on stop_file(); */
+    /** Triggered when file write has stopped: * on stocurFileRef(); */
     std::function<void(ffmediastream*, SHP(ZMB::FFileWriterBase) fptr)> cb_file_written;
 
     explicit ffmediastream(Poco::Channel* logChannel = nullptr);
@@ -89,7 +89,7 @@ public:
 
     /** Stop dump to file.
      * @return recent file that was written or NULL if called without write_file(). */
-    SHP(ZMB::FFileWriterBase) stop_file();
+    SHP(ZMB::FFileWriterBase) stopFile();
 
     void block_stream();
     void unblock_stream();
@@ -106,7 +106,7 @@ private:
     bool d_block;
 
     //copied from result of start_file(fname);
-    SHP(ZMB::FFileWriterBase) p_file;
+    SHP(ZMB::FFileWriterBase) curFileRef;
 
     Poco::Channel* logChannel;
 };
