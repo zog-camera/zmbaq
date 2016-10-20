@@ -3,105 +3,172 @@
 
 namespace ZMBEntities {
 
-StreamReader::StreamReader(const std::string& name)
+class SRPV
 {
-    should_run = true;
+public:
+
+  Mp4WriterTask file_pkt_q;
+
+};
+
+bool SRPV::open(const std::string& Uri)
+{
+  uri = Uri;
+  ictx.openInput(uri, ec);
+  if (ec)
+    {
+      cerr << "Can't open input\n";
+      return false;
+    }
+
+  cerr << "Streams: " << ictx.streamsCount() << endl;
+
+  ictx.findStreamInfo(ec);
+  if (ec)
+    {
+      cerr << "Can't find streams: " << ec << ", " << ec.message() << endl;
+      return false;
+    }
+
+  for (size_t i = 0; i < ictx.streamsCount(); ++i) {
+      auto st = ictx.stream(i);
+      if (st.mediaType() == AVMEDIA_TYPE_VIDEO) {
+          videoStream = i;
+          vst = st;
+          break;
+        }
+    }
+
+  cerr << videoStream << endl;
+
+  if (vst.isNull())
+    {
+      cerr << "Video stream not found\n";
+      return false;
+    }
+
+  if (vst.isValid())
+    {
+      vdec = VideoDecoderContext(vst);
+
+
+      Codec codec = findDecodingCodec(vdec.raw()->codec_id);
+
+      vdec.setCodec(codec);
+      vdec.setRefCountedFrames(true);
+
+      vdec.open({{"threads", "1"}}, Codec(), ec);
+      //vdec.open(ec);
+      if (ec) {
+          cerr << "Can't open codec\n";
+          return false;
+        }
+    }
+  return true;
 }
 
-bool StreamReader::open(ZConstString url)
+std::error_code SRPV::readPacket()
 {
-    int res = ff.open(url);
-    if (0 != res)
-      return false;
-    res = ff.get_video_stream_and_codecs();
-    if (0 != res)
-      return false;
-    ff.read_play();
-    should_run = true;
-    return true;
+  av::Packet pkt = ictx.readPacket(ec);
+  if (ec)
+    {
+      clog << "Packet reading error: " << ec << ", " << ec.message() << endl;
+      return ec;
+    }
+
+  if (pkt.streamIndex() != videoStream)
+    {
+      //return for
+      return ec;
+    }
+
+  auto ts = pkt.ts();
+  clog << "Read packet: " << ts << " / " << ts.seconds() << " / " << pkt.timeBase() << " / st: " << pkt.streamIndex() << endl;
+
+  if(!doesDecodePackets)
+    {
+      return ec;
+    }
+
+  av::VideoFrame frame = vdec.decode(pkt, ec);
+
+  count++;
+  if (ec)
+    {
+      cerr << "Error: " << ec << ", " << ec.message() << endl;
+      return ec;
+    } else if (!frame)
+    {
+      cerr << "Empty frame\n";
+      //continue;
+    }
+
+  ts = frame.pts();
+  clog << "  Frame: " << frame.width() << "x" << frame.height() << ", size=" << frame.size() << ", ts=" << ts << ", tm: " << ts.seconds() << ", tb: " << frame.timeBase() << ", ref=" << frame.isReferenced() << ":" << frame.refCount() << endl;
+  if (nullptr != )
+
+  return ec;
+}
+
+StreamReader::StreamReader(const std::string& name)
+{
+  pv = std::make_shared<SRPV>();
+  pv->objTag = name;
+}
+
+bool StreamReader::open(const std::string& url, bool with_decoding)
+{
+  bool res = pv->open(url);
+  if (!res)
+    {
+      pv.reset();
+    }
+  if (nullptr == pv->pool)
+    {
+      pv->pool = std::make_shared<ZMBCommon::ThreadsPool>(1);
+    }
+  ZMBCommon::CallableDoubleFunc readTask;
+  readTask.functor = [=]()
+  {
+
+
+
+      ZMBCommon::CallableDoubleFunc writeTask;
+      writeTask.functor = [=]()
+      {
+          pv->file_pkt_q.writeAsync(avpkt);
+      };
+      pool->submit(writeTask);
+    };
+  pool->submit(readTask);
+
+  return res;
 }
 
 StreamReader::~StreamReader()
 {
 }
 
+void StreamReader::setOnVideoPacket(OnPacketAction ftor)
+{
+  pv->onVideoPacket = ftor;
+}
+
+void StreamReader::setOnOtherPacket(OnPacketAction ftor)
+{
+  pv->onOtherPacket = ftor;
+}
+
+void StreamReader::setOnVideoFrame(OnFrameAction ftor)
+{
+  pv->onDecoded = ftor;
+}
+
 void StreamReader::stop()
 {
-    should_run = false;
 }
 
-bool StreamReader::rwSync()
-{
-  AVPacket pkt;
-  av_init_packet(&pkt);
 
-  int res = ff.read_frame(&pkt);
-  if (res >= 0)
-    {
-      /*copy contents*/
-      auto avpkt = std::make_shared<av::Packet> (&pkt);
-      av::Rational tb(*ff.get_timebase());
-      avpkt->setTimeBase(tb);
-      assert(avpkt->getSize() > 0);
-      file_pkt_q->writeSync(avpkt);
-    }
-  return res >= 0;
-}
-
-bool StreamReader::readSyncWriteAsync()
-{
-  AVPacket pkt;
-  av_init_packet(&pkt);
-
-  int res = ff.read_frame(&pkt);
-  if (res >= 0)
-    {
-      /*copy contents*/
-      auto avpkt = std::make_shared<av::Packet> ();
-      avpkt->deep_copy(&pkt);
-      av::Rational tb(*ff.get_timebase());
-      avpkt->setTimeBase(tb);
-      assert(avpkt->getSize() > 0);
-      file_pkt_q->writeAsync(avpkt);
-    }
-  return res >= 0;
-}
-
-bool StreamReader::rwAsync()
-{
-  if (nullptr == pool)
-    {
-      pool = std::make_shared<ZMBCommon::ThreadsPool>(2);
-      file_pkt_q->imbue(pool);
-    }
-  ZMBCommon::CallableDoubleFunc readTask;
-  readTask.functor = [=]()
-  {
-      AVPacket pkt;
-      ::memset(&pkt, 0x00, sizeof(AVPacket));
-      av_init_packet(&pkt);
-      int res = ff.read_frame(&pkt);
-      if (res < 0)
-        {
-          return;
-        }
-      //dispatch the packet for writing:
-      auto avpkt = std::make_shared<av::Packet> ();
-      avpkt->deep_copy(&pkt);
-      av::Rational tb(*ff.get_timebase());
-      avpkt->setTimeBase(tb);
-      assert(avpkt->getSize() > 0);
-
-      ZMBCommon::CallableDoubleFunc writeTask;
-      writeTask.functor = [=]()
-      {
-          file_pkt_q->writeAsync(avpkt);
-      };
-      pool->submit(writeTask);
-
-    };
-  pool->submit(readTask);
-}
 
 void StreamReader::imbue(std::shared_ptr<ZMBCommon::ThreadsPool> neuPool)
 {
@@ -111,7 +178,7 @@ void StreamReader::imbue(std::shared_ptr<ZMBCommon::ThreadsPool> neuPool)
       pool->joinAll();
     }
   pool = neuPool;
-  file_pkt_q->imbue(pool);
+  pv->file_pkt_q.imbue(pool);
 }
 
 }//ZMBEntities
