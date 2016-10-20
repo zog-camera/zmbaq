@@ -1,16 +1,8 @@
 #include "streamreader.h"
-#include "../src/avcpp/packet.h"
 
 namespace ZMBEntities {
 
-class SRPV
-{
-public:
-
-  Mp4WriterTask file_pkt_q;
-
-};
-
+//--------------------------------------------------------------
 bool SRPV::open(const std::string& Uri)
 {
   uri = Uri;
@@ -78,12 +70,19 @@ std::error_code SRPV::readPacket()
 
   if (pkt.streamIndex() != videoStream)
     {
-      //return for
+      if (nullptr != onOtherPacket)
+        {
+          onOtherPacket(pkt, shared_from_this());
+        }
       return ec;
     }
 
   auto ts = pkt.ts();
   clog << "Read packet: " << ts << " / " << ts.seconds() << " / " << pkt.timeBase() << " / st: " << pkt.streamIndex() << endl;
+  if (nullptr != onVideoPacket)
+    {
+      onVideoPacket(pkt, shared_from_this());
+    }
 
   if(!doesDecodePackets)
     {
@@ -105,10 +104,14 @@ std::error_code SRPV::readPacket()
 
   ts = frame.pts();
   clog << "  Frame: " << frame.width() << "x" << frame.height() << ", size=" << frame.size() << ", ts=" << ts << ", tm: " << ts.seconds() << ", tb: " << frame.timeBase() << ", ref=" << frame.isReferenced() << ":" << frame.refCount() << endl;
-  if (nullptr != )
+  if (nullptr != onDecoded)
+    {
+      onDecoded(frame, shared_from_this());
+    }
 
   return ec;
 }
+//--------------------------------------------------------------
 
 StreamReader::StreamReader(const std::string& name)
 {
@@ -118,6 +121,7 @@ StreamReader::StreamReader(const std::string& name)
 
 bool StreamReader::open(const std::string& url, bool with_decoding)
 {
+  pv->doesDecodePackets = with_decoding;
   bool res = pv->open(url);
   if (!res)
     {
@@ -125,21 +129,16 @@ bool StreamReader::open(const std::string& url, bool with_decoding)
     }
   if (nullptr == pv->pool)
     {
-      pv->pool = std::make_shared<ZMBCommon::ThreadsPool>(1);
+      imbue(std::make_shared<ZMBCommon::ThreadsPool>(1));
     }
   ZMBCommon::CallableDoubleFunc readTask;
-  readTask.functor = [=]()
+
+  readTask.functor = [this, readTask]()
   {
-
-
-
-      ZMBCommon::CallableDoubleFunc writeTask;
-      writeTask.functor = [=]()
-      {
-          pv->file_pkt_q.writeAsync(avpkt);
-      };
-      pool->submit(writeTask);
-    };
+      pv->readPacket();
+      ///todo: fix this:
+      getPool()->submit(readTask);
+  };
   pool->submit(readTask);
 
   return res;

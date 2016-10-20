@@ -21,18 +21,20 @@
 #include "../external/avcpp/src/codeccontext.h"
 
 #include "../src/zmbaq_common/zmbaq_common.h"
+#include "../src/zmbaq_common/thread_pool.h"
 #include <atomic>
 
 
 namespace ZMBEntities {
-
+//--------------------------------------------------------------
 class SRPV;
 
 typedef std::shared_ptr<SRPV> SRPVPtr;
 typedef std::function<void(av::Packet& pkt, SRPVPtr rdCtx)> OnPacketAction;
 typedef std::function<void(av::VideoFrame& pkt, SRPVPtr rdCtx)> OnFrameAction;
+//--------------------------------------------------------------
 
-class SRPV
+class SRPV : public std::enable_shared_from_this<SRPV>
 {
 
 public:
@@ -41,8 +43,17 @@ public:
     videoStream = -1;
     doesDecodePackets = true;
   }
+  ~SRPV()
+  {
+    if (nullptr != pool)
+      {
+        pool->close();
+        pool->terminateDetach();
+      }
+  }
 
   bool open(const std::string& Uri);
+  std::error_code readPacket();
 
   std::string objTag;
   std::string uri;
@@ -53,19 +64,18 @@ public:
   std::error_code   ec;
   av::FormatContext ictx;
   bool doesDecodePackets;
+  std::cout clog;
 
   /** By default has 1 thread if imbue(neuPool) was not called.*/
   std::shared_ptr<ZMBCommon::ThreadsPool> pool;
 
-  //@return TRUE if packed received.
-  bool proc();
-  std::error_code readPacket();
 
   //should be set externally, triggered from a Callable task in a thread
   OnPacketAction onVideoPacket;
   OnPacketAction onOtherPacket;
   OnFrameAction onDecoded;
 };
+//--------------------------------------------------------------
 
 
 class StreamReader
@@ -80,6 +90,10 @@ public:
    * Must be invoked before open(). */
   void imbue(std::shared_ptr<ZMBCommon::ThreadsPool> neuPool);
 
+  /** @return may be NULL; */
+  std::shared_ptr<ZMBCommon::ThreadsPool> getPool() const {
+    return pv->pool;
+  }
 
   /** Open the stream and start reading in the thread.
    * onPacketAction() called iteratively. */
