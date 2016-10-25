@@ -25,7 +25,7 @@ extern "C"
     #include <libavutil/mathematics.h>
     #include <libavutil/timestamp.h>
 }
-#include "avcpp/packet.h"
+#include "external/avcpp/src/packet.h"
 #include <cassert>
 #include <atomic>
 
@@ -116,7 +116,7 @@ void FFileWriterBase::raise_fatal_error()
 
 void FFileWriterBase::dumpPocketContent(ZMB::PacketsPocket::seq_key_t lastPacketTs)
 {
-  pocket.dump_packets(lastPacketTs, (void*)this);
+  pocket.dump_packets(lastPacketTs, this);
 }
 //===============================================================================
 
@@ -236,7 +236,7 @@ _on_fail_:
         }
     }
 
-    void write(AVPacket* input_avpacket)
+    void write(std::shared_ptr<av::Packet> input_avpacket)
     {
         assert (nullptr != inFmtContext);
 
@@ -252,7 +252,7 @@ _on_fail_:
             assert(ok);
             if (!ok) return;
         }
-        int av_stream_idx = input_avpacket->stream_index;
+        int av_stream_idx = input_avpacket->streamIndex();
 
         AVStream *in_stream  = inFmtContext->streams[av_stream_idx];
         AVStream *out_stream = outFmtContext->streams[0];
@@ -260,26 +260,27 @@ _on_fail_:
 
         if (0 == pts_shift)
         {
-            if (input_avpacket->pts != int64_t(AV_NOPTS_VALUE))
+            if (input_avpacket->pts().timestamp() != int64_t(AV_NOPTS_VALUE))
             {
-                pts_shift = av_rescale_q_rnd(input_avpacket->pts, in_stream->time_base, out_stream->time_base, AV_ROUND_NEAR_INF);
-                dts_shift = av_rescale_q_rnd(input_avpacket->dts, in_stream->time_base, out_stream->time_base, AV_ROUND_NEAR_INF);
+                pts_shift = av_rescale_q_rnd(input_avpacket->pts().timestamp(), in_stream->time_base, out_stream->time_base, AV_ROUND_NEAR_INF);
+                dts_shift = av_rescale_q_rnd(input_avpacket->dts().timestamp(), in_stream->time_base, out_stream->time_base, AV_ROUND_NEAR_INF);
             }
         }
 
-        int orig_idx = input_avpacket->stream_index;
-        int64_t orig_pos = input_avpacket->pos;
+//        int orig_idx = input_avpacket->streamIndex();
+//        int64_t orig_pos = input_avpacket->pos;
 
-        AVPacket* opkt = input_avpacket;
-        opkt->stream_index = out_stream->index;
-        opkt->pts = input_avpacket->pts  == int64_t(AV_NOPTS_VALUE) ? AV_NOPTS_VALUE
-                : av_rescale_q_rnd(input_avpacket->pts, in_stream->time_base, out_stream->time_base, AV_ROUND_NEAR_INF);
-        opkt->dts = av_rescale_q_rnd(input_avpacket->dts, in_stream->time_base, out_stream->time_base, AV_ROUND_NEAR_INF);
+        std::error_code _e;
+        AVPacket opkt = input_avpacket->makeRef(_e);
+        opkt.stream_index = out_stream->index;
+        opkt.pts = input_avpacket->pts().timestamp()  == int64_t(AV_NOPTS_VALUE) ? AV_NOPTS_VALUE
+                : av_rescale_q_rnd(input_avpacket->pts().timestamp(), in_stream->time_base, out_stream->time_base, AV_ROUND_NEAR_INF);
+        opkt.dts = av_rescale_q_rnd(input_avpacket->dts().timestamp(), in_stream->time_base, out_stream->time_base, AV_ROUND_NEAR_INF);
 
-        opkt->duration = av_rescale_q(input_avpacket->duration, in_stream->time_base, out_stream->time_base);
-        opkt->pts -= pts_shift;
-        opkt->dts -= dts_shift;
-        opkt->pos = -1;
+        opkt.duration = av_rescale_q(input_avpacket->duration(), in_stream->time_base, out_stream->time_base);
+        opkt.pts -= pts_shift;
+        opkt.dts -= dts_shift;
+        opkt.pos = -1;
 
 //#ifndef NDEBUG
 //        auto mb_log = packet_to_string("in", av_in_fmt_ctx,
@@ -289,15 +290,15 @@ _on_fail_:
 
         /** file size indication. Note: always access packet data before *_write_frame()
          *  functions are called, they purge the packet's payload when done.*/
-        d_parent->pb_file_size.fetch_add(opkt->size);
+        d_parent->pb_file_size.fetch_add(opkt.size);
 
-        av_interleaved_write_frame(outFmtContext, opkt);
+        av_interleaved_write_frame(outFmtContext, &opkt);
 
-        //restore some values:
-        input_avpacket->pts += pts_shift;
-        input_avpacket->dts += dts_shift;
-        input_avpacket->pos = orig_pos;
-        input_avpacket->stream_index = orig_idx;
+//        //restore some values:
+//        input_avpacket->pts += pts_shift;
+//        input_avpacket->dts += dts_shift;
+//        input_avpacket->pos = orig_pos;
+//        input_avpacket->stream_index = orig_idx;
 
         ++(frame_cnt);
     }
@@ -336,14 +337,10 @@ bool FFileWriter::open(const AVFormatContext *av_in_fmt_ctx, const ZConstString&
     return is_open;
 }
 
-void FFileWriter::write(AVPacket* input_avpacket)
-{
-    pv->write(input_avpacket);
-}
 
 void FFileWriter::write(std::shared_ptr<av::Packet> pkt)
 {
-   pv->write(pkt->getAVPacket());
+   pv->write(pkt);
 }
 
 void FFileWriter::close()

@@ -20,7 +20,7 @@ set(OPENCV_DIR "${DEPENDS_ROOT}" CACHE PATH "OpenCV >= 3.0 installation path")
 set(CMAKE_CXX_FLAGS "-std=c++11 -msse2")
 
 add_definitions("-D__STDC_CONSTANT_MACROS -DBOOST_LOG_DYN_LINK")
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/
+include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${DEPENDS_ROOT}/include ${DEPENDS_ROOT}/include/jsoncpp
     ${DEPENDS_ROOT}/include/glm ${DEPENDS_ROOT}/glm )
 

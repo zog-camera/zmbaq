@@ -36,6 +36,7 @@ namespace av
 
 namespace ZMB {
 
+class FFileWriterBase;
 
 /** Buffers packets that not older than @param_buffer_seconds. Allows to dump them to file/stream.*/
 class PacketsPocket
@@ -87,7 +88,7 @@ public:
     /** Dump all packets not present in file.
      * If pkt_stamp == 0, then gets all packets from range(0,buffering_seconds).
      * Else dumps all packets newer than the timestamp. */
-    void dump_packets(seq_key_t& last_pkt_stamp, /*(FFileWriterBase*)*/ void* pffilewriterbase);
+    void dump_packets(seq_key_t& last_pkt_stamp, FFileWriterBase* pffilewriterbase);
 
     /** Reset for each new file:*/
     TimingUtils::LapTimer laptime;

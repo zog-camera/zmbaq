@@ -9,16 +9,16 @@ bool SRPV::open(const std::string& Uri)
   ictx.openInput(uri, ec);
   if (ec)
     {
-      cerr << "Can't open input\n";
+      std::cerr << "Can't open input\n";
       return false;
     }
 
-  cerr << "Streams: " << ictx.streamsCount() << endl;
+  std::cerr << "Streams: " << ictx.streamsCount() << std::endl;
 
   ictx.findStreamInfo(ec);
   if (ec)
     {
-      cerr << "Can't find streams: " << ec << ", " << ec.message() << endl;
+      std::cerr << "Can't find streams: " << ec << ", " << ec.message() << std::endl;
       return false;
     }
 
@@ -31,28 +31,28 @@ bool SRPV::open(const std::string& Uri)
         }
     }
 
-  cerr << videoStream << endl;
+  std::cerr << videoStream << std::endl;
 
   if (vst.isNull())
     {
-      cerr << "Video stream not found\n";
+      std::cerr << "Video stream not found\n";
       return false;
     }
 
   if (vst.isValid())
     {
-      vdec = VideoDecoderContext(vst);
+      vdec = av::VideoDecoderContext(vst);
 
 
-      Codec codec = findDecodingCodec(vdec.raw()->codec_id);
+      av::Codec codec = av::findDecodingCodec(vdec.raw()->codec_id);
 
       vdec.setCodec(codec);
       vdec.setRefCountedFrames(true);
 
-      vdec.open({{"threads", "1"}}, Codec(), ec);
+      vdec.open({{"threads", "1"}}, av::Codec(), ec);
       //vdec.open(ec);
       if (ec) {
-          cerr << "Can't open codec\n";
+          std::cerr << "Can't open codec\n";
           return false;
         }
     }
@@ -64,7 +64,7 @@ std::error_code SRPV::readPacket()
   av::Packet pkt = ictx.readPacket(ec);
   if (ec)
     {
-      clog << "Packet reading error: " << ec << ", " << ec.message() << endl;
+//      clog << "Packet reading error: " << ec << ", " << ec.message() << std::endl;
       return ec;
     }
 
@@ -78,7 +78,7 @@ std::error_code SRPV::readPacket()
     }
 
   auto ts = pkt.ts();
-  clog << "Read packet: " << ts << " / " << ts.seconds() << " / " << pkt.timeBase() << " / st: " << pkt.streamIndex() << endl;
+//  clog << "Read packet: " << ts << " / " << ts.seconds() << " / " << pkt.timeBase() << " / st: " << pkt.streamIndex() << std::endl;
   if (nullptr != onVideoPacket)
     {
       onVideoPacket(pkt, shared_from_this());
@@ -94,16 +94,16 @@ std::error_code SRPV::readPacket()
   count++;
   if (ec)
     {
-      cerr << "Error: " << ec << ", " << ec.message() << endl;
+      std::cerr << "Error: " << ec << ", " << ec.message() << std::endl;
       return ec;
     } else if (!frame)
     {
-      cerr << "Empty frame\n";
+      std::cerr << "Empty frame\n";
       //continue;
     }
 
   ts = frame.pts();
-  clog << "  Frame: " << frame.width() << "x" << frame.height() << ", size=" << frame.size() << ", ts=" << ts << ", tm: " << ts.seconds() << ", tb: " << frame.timeBase() << ", ref=" << frame.isReferenced() << ":" << frame.refCount() << endl;
+//  clog << "  Frame: " << frame.width() << "x" << frame.height() << ", size=" << frame.size() << ", ts=" << ts << ", tm: " << ts.seconds() << ", tb: " << frame.timeBase() << ", ref=" << frame.isReferenced() << ":" << frame.refCount() << std::endl;
   if (nullptr != onDecoded)
     {
       onDecoded(frame, shared_from_this());
@@ -133,13 +133,13 @@ bool StreamReader::open(const std::string& url, bool with_decoding)
     }
   ZMBCommon::CallableDoubleFunc readTask;
 
-  readTask.functor = [this, readTask]()
+  readTask.functor = [this, &readTask]()
   {
       pv->readPacket();
-      ///todo: fix this:
-      getPool()->submit(readTask);
+      ///TODO: fix this:--------------------------------
+      pv->pool->submit(readTask);
   };
-  pool->submit(readTask);
+  pv->pool->submit(readTask);
 
   return res;
 }
@@ -171,13 +171,12 @@ void StreamReader::stop()
 
 void StreamReader::imbue(std::shared_ptr<ZMBCommon::ThreadsPool> neuPool)
 {
-  if (nullptr != pool)
+  if (nullptr != pv->pool)
     {
-      pool->close();
-      pool->joinAll();
+      pv->pool->close();
+      pv->pool->joinAll();
     }
-  pool = neuPool;
-  pv->file_pkt_q.imbue(pool);
+  pv->pool = neuPool;
 }
 
 }//ZMBEntities

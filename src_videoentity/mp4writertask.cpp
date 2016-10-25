@@ -4,7 +4,7 @@
 #include <Poco/Thread.h>
 #include <Poco/DateTime.h>
 #include "../src/ffilewriter.h"
-#include "../src/avcpp/packet.h"
+#include "external/avcpp/src/packet.h"
 
 namespace ZMBEntities {
 
@@ -83,12 +83,12 @@ void _Mp4TaskPriv::write(std::shared_ptr<av::Packet> packet)
 
   {//push the packet into the cache
     auto lk = fileWriterMp4->locker(); (void)lk;
-    AVPacket* pkt = item->getAVPacket();
-    size_t sz = pkt->size;
-    sz += (0 == sz)? pkt->buf->size: 0;
+    AVPacket pkt = item->makeRef();
+    size_t sz = pkt.size;
+    sz += (0 == sz)? pkt.buf->size: 0;
 
     fileWriterMp4->prevPktTimestamp = fileWriterMp4->pocket.push(packet);
-    fileWriterMp4->pb_file_size.fetch_add(item->getSize());
+    fileWriterMp4->pb_file_size.fetch_add(item->size());
 
     if (item->isKeyPacket())
     {//dump on key frames

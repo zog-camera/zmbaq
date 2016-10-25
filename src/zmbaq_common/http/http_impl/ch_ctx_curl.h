@@ -28,7 +28,7 @@ public:
 };
 
 /** libneon ne_session holder*/
-class ClientCtx : public WebGrep::noncopyable
+class ClientCtx : public ZMBCommon::noncopyable
 {
 public:
   ClientCtx();

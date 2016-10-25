@@ -16,7 +16,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 
 #include "packetspocket.h"
-#include "avcpp/packet.h"
+#include "external/avcpp/src/packet.h"
 #include "ffilewriter.h"
 
 namespace ZMB {
@@ -51,8 +51,8 @@ void PacketsPocket::set(double param_buffer_seconds, double param_minimum_moveme
 
 PacketsPocket::seq_key_t PacketsPocket::push(std::shared_ptr<av::Packet> pkt, bool do_delete_obsolete)
 {
-    t_base = pkt->getTimeBase().getValue();
-    auto key = seq_key_t(laptime.elapsed(), pkt->getPts());
+    t_base = pkt->timeBase().getValue();
+    auto key = seq_key_t(laptime.elapsed(), pkt->pts().timestamp());
     marked_pkt_t mpkt (key, pkt);
 
     if (pkt->isKeyPacket())
@@ -71,7 +71,7 @@ PacketsPocket::seq_key_t PacketsPocket::push(std::shared_ptr<av::Packet> pkt, bo
         }
         //else we skip packets until first key-frame comes
     }
-    prev_pts = pkt->getPts();
+    prev_pts = pkt->pts().timestamp();
 
     if (!do_delete_obsolete || frames_sequences.size() <= 1)
         return key;
@@ -86,12 +86,12 @@ PacketsPocket::seq_key_t PacketsPocket::push(std::shared_ptr<av::Packet> pkt, bo
     return key;
 }
 
-void PacketsPocket::dump_packets(seq_key_t& last_pkt_stamp, /*(FFileWriterBase*)*/void* pffilewriterbase)
+void PacketsPocket::dump_packets(seq_key_t& last_pkt_stamp, FFileWriterBase* pffilewriterbase)
 {
     if (frames_sequences.empty())
         return;
 
-    ZMB::FFileWriterBase* pfile = (FFileWriterBase*)pffilewriterbase;
+    ZMB::FFileWriterBase* pfile = dynamic_cast<ZMB::FFileWriterBase*>(pffilewriterbase);
     /* Write the compressed frame to the media file. */
     assert(nullptr != pfile && false == pfile->empty());
 
@@ -110,19 +110,14 @@ void PacketsPocket::dump_packets(seq_key_t& last_pkt_stamp, /*(FFileWriterBase*)
                }
             }
         }
-        snprintf(msg, sizeof(msg),
-                 "file: %s frames sequence with %lu frames. Head timesec: %lf, pts: %lu\n",
-                pfile->path().data(), deq.size(), (*cursor).first, (*cursor).second);
+//        snprintf(msg, sizeof(msg),
+//                 "file: %s frames sequence with %lu frames. Head timesec: %lf, pts: %lu\n",
+//                pfile->path().data(), deq.size(), (*cursor).first, (*cursor).second);
 //        LDEBUG(ZCSTR("avpacket"), ZConstString(msg, strlen(msg)));
 
-        AVPacket _p;
         for (; cursor != deq.end(); ++cursor)
         {
-            /** We make a deep copy here, because underlying av_interleaved_writer_frame()
-             *  shall free the packet data anyway. But we need packets to stay
-            in a list while they're not replaced by newcoming data.*/
-            _p = cursor->second->deep_copy();
-            pfile->write(&_p);
+            pfile->write(cursor->second);
         }
         //I guess that there is always >= 1 element:
         last_pkt_stamp = cursor->first;

@@ -49,8 +49,6 @@ public:
 
   virtual void close() = 0;
 
-  /** child's method may increase pb_file_size. */
-  virtual void write(AVPacket *input_avpacket) = 0;
 
   /** child's method may increase pb_file_size. */
   virtual void write(std::shared_ptr<av::Packet> pkt) = 0;

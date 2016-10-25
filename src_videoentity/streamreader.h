@@ -23,6 +23,7 @@
 #include "../src/zmbaq_common/zmbaq_common.h"
 #include "../src/zmbaq_common/thread_pool.h"
 #include <atomic>
+#include <iostream>
 
 
 namespace ZMBEntities {
@@ -42,6 +43,7 @@ public:
   {
     videoStream = -1;
     doesDecodePackets = true;
+    count = 0;
   }
   ~SRPV()
   {
@@ -64,7 +66,7 @@ public:
   std::error_code   ec;
   av::FormatContext ictx;
   bool doesDecodePackets;
-  std::cout clog;
+  size_t count;
 
   /** By default has 1 thread if imbue(neuPool) was not called.*/
   std::shared_ptr<ZMBCommon::ThreadsPool> pool;

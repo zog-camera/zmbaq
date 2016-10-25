@@ -5,7 +5,7 @@
 #include <memory>
 #include <Poco/Task.h>
 #include "../src/fshelper.h"
-#include "../src/avcpp/packet.h"
+#include "external/avcpp/src/packet.h"
 
 #include "../src/ffilewriter.h"
 #include "../src/zmbaq_common/thread_pool.h"

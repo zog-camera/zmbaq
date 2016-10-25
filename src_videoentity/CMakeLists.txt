@@ -1,6 +1,6 @@
 project(SrcVideoEntityProj)
 
-set(FFMPEG_DIR "${HOMIAK}/coding/broot_debug"
+set(FFMPEG_DIR "${DEPENDS_ROOT}"
     CACHE PATH "Path to FFMpeg install dir")
 
 message("FFMPEG_DIR = ${FFMPEG_DIR}")
@@ -31,4 +31,5 @@ add_library(videoentity STATIC ${src_lib_ve} ${src_l4v})
 
 
 target_link_libraries(videoentity zmbsrc ${PocoFoundation_LIB}
-	${FFMPEG_LIBRARIES} ${LOG4_LIB} ${V4_LIB} avcpp_static)
+  ${FFMPEG_LIBRARIES} #${LOG4_LIB}
+  ${V4_LIB} avcpp_static)
