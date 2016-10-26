@@ -1,4 +1,3 @@
-#include "av_things.h"
 #include "videoentity.h"
 #include "videoentity_pv.h"
 #include "survcamparams.h"

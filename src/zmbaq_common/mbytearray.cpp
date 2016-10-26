@@ -312,12 +312,6 @@ MByteArrayList& MByteArrayList::operator << (const MByteArray& str)
 
 
 
-std::string jexport(const Json::Value* val)
-{
-    Json::FastWriter wr;
-    return wr.write(*val);
-}
-
 }
 
 

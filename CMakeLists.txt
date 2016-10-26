@@ -23,6 +23,7 @@ add_definitions("-D__STDC_CONSTANT_MACROS -DBOOST_LOG_DYN_LINK")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src/
     ${DEPENDS_ROOT}/include ${DEPENDS_ROOT}/include/jsoncpp
     ${DEPENDS_ROOT}/include/glm ${DEPENDS_ROOT}/glm )
+link_directories(${DEPENDS_ROOT}/lib)
 
 if(NO_V4L)
        add_definitions("-DZMBAQ_NOV4L=1")
@@ -58,7 +59,7 @@ add_subdirectory(src)
 # libvideoentity
 add_subdirectory(src_videoentity)
 # RTSP dumper:
-add_subdirectory(src_rtsp_dumper)
+# add_subdirectory(src_rtsp_dumper)
 ##########################################
 
 if (WITH_GUI)

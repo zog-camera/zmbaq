@@ -52,9 +52,9 @@ void FSItem::to_json(Json::Value* jo) const
     fslocation.absolute_path(buf, ZConstString(fname.data(), fname.size()));
     Json::Value& val(*jo);
 
-    val["path"] = Json::Value(buf);
-    val["filename"] = Json::Value(fname);
-    val["location"] = Json::Value(fslocation.location);
+    val["path"] = Json::Value(buf.data());
+    val["filename"] = Json::Value(fname.data());
+    val["location"] = Json::Value(fslocation.location.data());
     val["type"] = (int)fslocation.type;
 }
 

@@ -62,7 +62,7 @@ bool VideoEntityID::operator () (const VideoEntityID& one, const VideoEntityID& 
 
 void SurvCamParams::set_rtp(const std::string& server, u_int16_t port)
 {
-   RTP_settings["server"] = server;
+   RTP_settings["server"] = server.data();
    RTP_settings["port"] = (int)port;
 }
 

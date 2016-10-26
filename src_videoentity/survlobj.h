@@ -80,7 +80,6 @@ protected:
     std::array<IDEntityPair, ZMBAQ_MAX_ENTITIES_PER_OBJECT> ve_array;
     u_int32_t array_items_cnt;
 
-    Json::FastWriter wr;
     Json::Value settings;
     Json::Value entities_list;
 

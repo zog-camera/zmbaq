@@ -133,7 +133,6 @@ public:
 
 
 typedef std::shared_ptr<MByteArray> MByteArrayPtr;
-std::string jexport(const Json::Value* val);
 }//ZMBCommon
 
 
