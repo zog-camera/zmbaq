@@ -1,13 +1,7 @@
 #ifndef CLIENT_HTTP_HPP
 #define	CLIENT_HTTP_HPP
 
-#ifdef WITH_LIBNEON
-	#include "http_impl/ch_ctx_neon.h"
-#elif defined(WITH_LIBCURL)
-	#include "http_impl/ch_ctx_curl.h"
-#elif defined(WITH_QTNETWORK)
-	#include "http_impl/ch_ctx_qtnet.h"
-#endif //with_libneon
+#include "http_impl/ch_ctx_neon.h"
 
 /** Modified version from https://github.com/eidheim/Simple-Web-Server */
 namespace WebGrep {

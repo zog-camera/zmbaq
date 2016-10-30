@@ -51,7 +51,7 @@ public:
 
 struct IssuedRequest
 {//ref.count holding structure
-  std::shared_ptr<ne_request> req;
+  std::shared_ptr<ne_request> req;//has deleter when constructed in std::make_shared
   std::shared_ptr<ClientCtx> ctx; //holds reference of a context
 };
 

@@ -28,6 +28,7 @@ set(FFMPEG_LIBRARY_DIRS ${FFMPEG_DIR}/lib)
 set(FFMPEG_LIBRARIES ${AVCODEC_LIB} ${AVFORMAT_LIB} ${AVUTIL_LIB} ${AVFILTER_LIB} ${AVDEVICE_LIB} ${SWSCALE_LIB})
 
 add_subdirectory(../external ${CMAKE_BINARY_DIR}/avcpp)
+include_directories(../external/avcpp/src)
 add_library(videoentity STATIC ${src_lib_ve} ${src_l4v})
 
 
