@@ -19,7 +19,7 @@ public:
 
 public slots:
     void on_writer_error(std::shared_ptr<ZMBCommon::GenericStreamWriter> writer,
-                         std::shared_ptr<MByteArray> msg)
+                         std::shared_ptr<std::string> msg)
     {
         qDebug() << "Error occured: " << msg->data();
         QApplication::quit();

@@ -47,7 +47,7 @@ const QJsonObject& LoggerSettings::get_settings() const
    return settings;
 }
 
-void LoggerSettings::set_disk_write(bool onoff, MByteArray path)
+void LoggerSettings::set_disk_write(bool onoff, std::string path)
 {
     QJsonObject disk_o;
     disk_o["logsdir"] = path.empty()? QDir::currentPath() : path.to_qstring();
@@ -55,7 +55,7 @@ void LoggerSettings::set_disk_write(bool onoff, MByteArray path)
     settings["disk"] = QJsonValue(disk_o);
 }
 
-MByteArray LoggerSettings::logs_dirname() const
+std::string LoggerSettings::logs_dirname() const
 {
     auto jo = settings["disk"].toObject();
     return jo["logsdir"].toString();
@@ -72,10 +72,10 @@ bool LoggerSettings::disk_write_enabled() const
 }
 
 
-SHP(QFile) LoggerSettings::make_logfile(const MByteArray& tag)
+SHP(QFile) LoggerSettings::make_logfile(const std::string& tag)
 {
     QDateTime tm  = QDateTime::currentDateTime();
-    MByteArray fname = logs_dirname();
+    std::string fname = logs_dirname();
     fname += "/log_";
     fname += tag;
     fname += "_";

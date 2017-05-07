@@ -81,6 +81,9 @@ public:
    * @return new child node or NULL on caught exception.
  */
   LinkedTask* spawnChildNode(LinkedTask*& expelledChild);
+  
+  //same as previous, but it'll delete the old subtree if present
+  LinkedTask* spawnChildNode();
 
   /** traverse to the last item on current tree level
    * @return last item if exists, (this) otherwise. */

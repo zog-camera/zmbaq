@@ -29,39 +29,39 @@ extern "C"
 #include <cassert>
 #include <atomic>
 
-static ZMBCommon::MByteArray ts_to_string(int64_t ts)
+static std::string ts_to_string(int64_t ts)
 {
     size_t size = 0;
-    ZMBCommon::MByteArray buffer;
+    std::string buffer;
     buffer.resize(AV_TS_MAX_STRING_SIZE, '\0');
 
     if (ts == int64_t(AV_NOPTS_VALUE))
-        size = snprintf(buffer.unsafe(), AV_TS_MAX_STRING_SIZE, "NOPTS");
+        size = snprintf(&buffer[0], AV_TS_MAX_STRING_SIZE, "NOPTS");
     else
-        size = snprintf(buffer.unsafe(), AV_TS_MAX_STRING_SIZE, "%" PRIu64, ts);
+        size = snprintf(&buffer[0], AV_TS_MAX_STRING_SIZE, "%" PRIu64, ts);
     return buffer.substr(0, size);
 }
 
-static ZMBCommon::MByteArray ts_to_timestring(int64_t ts, AVRational *tb)
+static std::string ts_to_timestring(int64_t ts, AVRational *tb)
 {
     size_t size = 0;
-    ZMBCommon::MByteArray buffer;
+    std::string buffer;
     buffer.resize(AV_TS_MAX_STRING_SIZE, 0x00);
 
     if (ts == int64_t(AV_NOPTS_VALUE))
-        size = snprintf(buffer.unsafe(), AV_TS_MAX_STRING_SIZE, "NOPTS");
+        size = snprintf(&buffer[0], AV_TS_MAX_STRING_SIZE, "NOPTS");
     else
-        size = snprintf(buffer.unsafe(), AV_TS_MAX_STRING_SIZE, "%.6g", av_q2d(*tb) * ts);
+        size = snprintf(&buffer[0], AV_TS_MAX_STRING_SIZE, "%.6g", av_q2d(*tb) * ts);
     return buffer.substr(0, size);
 }
 
-static ZMBCommon::MByteArray packet_to_string(const ZMBCommon::MByteArray& tag, const AVFormatContext *av_fmt_ctx, const AVPacket *av_pkt)
+static std::string packet_to_string(const std::string& tag, const AVFormatContext *av_fmt_ctx, const AVPacket *av_pkt)
 {
     AVRational *time_base = &av_fmt_ctx->streams[av_pkt->stream_index]->time_base;
 
-    ZMBCommon::MByteArray buffer;
+    std::string buffer;
     buffer.resize(255, 0x00);
-    size_t len = snprintf(buffer.unsafe(), buffer.size(),
+    size_t len = snprintf(&buffer[0], buffer.size(),
                           "%s: pts: %s pts_time: %s dts: %s dts_time: %s duration: %s duration_time: %s stream_index: %d\n",
            tag.c_str(),
            ts_to_string(av_pkt->pts).c_str(), ts_to_timestring(av_pkt->pts, time_base).c_str(),
@@ -72,18 +72,18 @@ static ZMBCommon::MByteArray packet_to_string(const ZMBCommon::MByteArray& tag, 
     return buffer.substr(0, len);
 }
 
-static ZMBCommon::MByteArray error_to_string(int errnum)
+static std::string error_to_string(int errnum)
 {
-    ZMBCommon::MByteArray buff;
-    buff.resize(1024, 0x00);
+  std::string buff;
+  buff.resize(1024, 0x00);
 
-    if (av_strerror(errnum, &buff[0], buff.size()) == 0)
+  if (av_strerror(errnum, &buff[0], buff.size()) == 0)
     {
-        buff = buff.substr(0, buff.find_last_not_of(char(0)) + 1);
-        return buff;
+      buff = buff.substr(0, buff.find_last_not_of(char(0)) + 1);
+      return buff;
     }
 
-    return ZMBCommon::MByteArray(std::to_string(errnum));
+  return std::string(std::to_string(errnum));
 }
 namespace ZMB {
 
@@ -157,7 +157,7 @@ struct FFileWriter::PV
         AVOutputFormat *av_out_fmt = av_guess_format(nullptr, /*filename*/dst.c_str(), nullptr);
         if (!av_out_fmt)
         {
-            ZMBCommon::MByteArray msg("Can't guess format by passed dest: ");
+	  std::string msg("Can't guess format by passed dest: ");
             msg += dst;
             d_parent->dispatch_error(msg);
             return false;

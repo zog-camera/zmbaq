@@ -17,7 +17,7 @@ class TagViewWidget;
 
 
 //Hash<QByteArray, SHP(SurvlObject)>
-typedef LCDS::MapHnd<MByteArray, SHP(TagViewWidget)> HashViewers;
+typedef LCDS::MapHnd<std::string, SHP(TagViewWidget)> HashViewers;
 
 
 class CentralWidget : public QWidget,
@@ -41,11 +41,11 @@ public slots:
     //on address enter:
     void on_enter();
 
-    void pass_msg(const Json::Value& metadata, MByteArrayPtr msg);
+    void pass_msg(const Json::Value& metadata, std::stringPtr msg);
 
 private:
 
-    MByteArray temp;
+    std::string temp;
     QTabWidget* tabs;
     SHP(HashViewers) tagviews;
     LeechLair<CentralWidget, LogsGrabber, float/*fps*/> udp_lair;

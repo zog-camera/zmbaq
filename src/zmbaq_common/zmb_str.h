@@ -115,7 +115,7 @@ struct ZUnsafeBuf
      *  @return false if buffer overflow is possible. */
     bool read(char** end_ptr, const ZConstString& data, char* start_pos = NULL);
 
-    //Copy with converting to network byte order, the data muyst be aligned.
+    //Copy with converting to network byte order, the data must be aligned.
     bool read_htonl(u_int32_t** end_ptr, const ZConstString& data, u_int32_t* start_pos = NULL);
     bool read_htons(u_int16_t** end_ptr, const ZConstString& data, u_int16_t* start_pos = NULL);
 

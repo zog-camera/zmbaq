@@ -422,8 +422,8 @@ public:
         mode = DetectionMode::FULL_FRAME;
     }
 
-    typedef std::map<ZMBCommon::MByteArray, std::vector<glm::ivec2>> LinesMap;
-    typedef std::pair<ZMBCommon::MByteArray, std::vector<glm::ivec2>> NamedLine;
+  typedef std::map<std::string, std::vector<glm::ivec2>> LinesMap;
+  typedef std::pair<std::string, std::vector<glm::ivec2>> NamedLine;
 
     void detect(const ZMB::MImage& frame)
     {
@@ -488,7 +488,7 @@ public:
     std::shared_ptr<CVBGS::MOG2Algo> full_frame_mog2;
     std::map<ZMB::MRegion, std::shared_ptr<CVBGS::MOG2Algo>> rect_zones_map;
 
-    std::map<ZMBCommon::MByteArray/*name*/, std::vector<glm::ivec2>/*convex hull*/>
+  std::map<std::string/*name*/, std::vector<glm::ivec2>/*convex hull*/>
         ignored_polygonal_zones_map,
         interest_polygonal_zones_map;
     cv::Mat enabled_detection_mask;

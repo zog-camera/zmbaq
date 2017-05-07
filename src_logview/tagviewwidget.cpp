@@ -16,7 +16,7 @@
 #include "logsgrabber.h"
 
 
-TagViewWidget::TagViewWidget(const MByteArray& selection_tag,
+TagViewWidget::TagViewWidget(const std::string& selection_tag,
                              int rows_limit,
                              QWidget *parent)
     : QWidget(parent), tag(selection_tag)
@@ -47,7 +47,7 @@ TagViewWidget::~TagViewWidget()
     dump_file();
 }
 
-const MByteArray& TagViewWidget::gettag() const
+const std::string& TagViewWidget::gettag() const
 {
    return tag;
 }
@@ -68,9 +68,9 @@ void TagViewWidget::check_limit_dumpfile()
         rows_cnt = 0;
     }
 }
-MByteArray make_date_time(const QJsonObject& jo)
+std::string make_date_time(const QJsonObject& jo)
 {
-    MByteArray tm;
+    std::string tm;
     tm += jo["date"].toString();
     tm += " ";
     tm += jo["timezone"].toString();
@@ -82,9 +82,9 @@ MByteArray make_date_time(const QJsonObject& jo)
     return tm;
 }
 
-MByteArray make_date_time(const Json::Value& jo)
+std::string make_date_time(const Json::Value& jo)
 {
-    MByteArray tm;
+    std::string tm;
     tm += jo["date"].asCString();
     tm += " ";
     tm += jo["timezone"].asCString();
@@ -98,7 +98,7 @@ MByteArray make_date_time(const Json::Value& jo)
 
 
 
-void TagViewWidget::post(const Json::Value& metadata, MByteArrayPtr msg)
+void TagViewWidget::post(const Json::Value& metadata, std::stringPtr msg)
 {
     QMutexLocker lk(&mut);
     if (nullptr != metadata.find(CW_KW_OBJECT.begin(), CW_KW_OBJECT.end())

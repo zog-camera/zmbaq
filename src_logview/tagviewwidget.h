@@ -19,12 +19,12 @@ class TagViewWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit TagViewWidget(const MByteArray& selection_tag,
+    explicit TagViewWidget(const std::string& selection_tag,
                            int rows_limit = 2500,
                            QWidget *parent = 0);
     virtual ~TagViewWidget();
 
-    const MByteArray& gettag() const;
+    const std::string& gettag() const;
     
     
 
@@ -33,14 +33,14 @@ signals:
 public slots:
 
     //select by tag:
-    void post(const Json::Value& metadata, MByteArrayPtr msg);
+    void post(const Json::Value& metadata, std::stringPtr msg);
 
 private:
     void check_limit_dumpfile();
     void dump_file();
 
     QMutex mut;
-    MByteArray tag;
+    std::string tag;
     QLabel* queryLabel;
     QLineEdit* queryEdit;
     QTextEdit* textEdit;
@@ -48,7 +48,7 @@ private:
     int rows_cnt;
 
 //    static const int time_col_width = 24;
-//    MByteArray time_col_text;
+//    std::string time_col_text;
 };
 
 #endif // TAGVIEWWIDGET_H

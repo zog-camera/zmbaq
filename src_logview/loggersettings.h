@@ -17,14 +17,14 @@ public:
 
     static LoggerSettings* instance();
     const QJsonObject& get_settings() const;
-    MByteArray logs_dirname() const;
+    std::string logs_dirname() const;
 
     int rowsmax() const;
 
-    void set_disk_write(bool onoff, MByteArray path = "");
+    void set_disk_write(bool onoff, std::string path = "");
     bool disk_write_enabled() const;
 
-    SHP(QFile) make_logfile(const MByteArray& tag);
+    SHP(QFile) make_logfile(const std::string& tag);
 
 signals:
     void runtime_block_feeds();

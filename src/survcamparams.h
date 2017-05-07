@@ -27,22 +27,13 @@ namespace ZMB {
 
 struct ClientID
 {
-    ClientID(u_int32_t val = 0xffffffff)
-    {
-        client_id = val;
-    }
-    u_int32_t client_id;
+    u_int32_t client_id = 0xffffffff;
 };
 
 struct SurvlObjectID
 {
-    SurvlObjectID()
-    {
-        ZUnsafeBuf zb(mem_accessor()); 
-        survlobj_id = 0xffffffff;
-    }
     ClientID  client_id;
-    u_int32_t survlobj_id;
+    u_int32_t survlobj_id = 0xffffffff;
 
     ZUnsafeBuf mem_accessor() const {return ZUnsafeBuf((char*)this, sizeof(*this));}
 };

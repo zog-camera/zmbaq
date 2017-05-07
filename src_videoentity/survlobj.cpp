@@ -14,12 +14,12 @@ Json::Value jvalue_from_file(bool &ok, const ZConstString& fname)
     char _buf [1024];
     ZUnsafeBuf buf(_buf, sizeof(_buf));
     buf.fill(0);
-    ZMBCommon::MByteArray text;
+    std::string text;
     std::ifstream in;
     in.open(fname.begin());
 
     for (size_t bytes_read = 0; !in.eof() && in.good();
-         text += ZConstString(buf.begin(), bytes_read))
+         text += std::string(buf.begin(), bytes_read))
     {
         bytes_read = in.readsome(buf.begin(), buf.size());
         if (0 == bytes_read)
@@ -123,9 +123,9 @@ bool SurvlObj::create(const Json::Value* config_object)
              **/
             ZConstString fs_loc(ZMB::SURV_CAM_PARAMS_FS, entity_cfg);
             ZConstString item_name(ZMB::SURV_CAM_PARAMS_NAME, entity_cfg);
-            ZMBCommon::MByteArray np = fs_loc;
+	    std::string np = fs_loc;
             np += ZMFS::FSLocation::dir_path_sep;
-            np += item_name;
+            np += std::string(item_name.begin(), item_name.size());
             auto znp = np.get_const_str();
             //(*entity_cfg)["fs"] = path;
             entity_cfg->operator [](ZMB::SURV_CAM_PARAMS_FS.begin()) =

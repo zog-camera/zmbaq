@@ -28,19 +28,19 @@ public:
     virtual ~LogsGrabber();
 
 signals:
-    void message(Json::Value metadata, MByteArrayPtr msg);
-    void sig_error(MByteArray err);
+    void message(Json::Value metadata, std::stringPtr msg);
+    void sig_error(std::string err);
 
 
 public slots:
 
-    void listen(const MByteArray& srv, quint16 port);
+    void listen(const std::string& srv, quint16 port);
 
     void proc();
 
 private:
-    MByteArray name;
-    MByteArray buf;
+    std::string name;
+    std::string buf;
 
     Json::Reader jreader;
 

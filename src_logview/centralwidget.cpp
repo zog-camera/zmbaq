@@ -50,7 +50,7 @@ CentralWidget::~CentralWidget()
     mg->clear();
 }
 
-void CentralWidget::pass_msg(const Json::Value& metadata, MByteArrayPtr msg)
+void CentralWidget::pass_msg(const Json::Value& metadata, std::stringPtr msg)
 {
    if (metadata.type() == Json::objectValue && nullptr != metadata.find(CW_KW_OBJECT.begin(), CW_KW_OBJECT.end()))
    {
@@ -62,7 +62,7 @@ void CentralWidget::pass_msg(const Json::Value& metadata, MByteArrayPtr msg)
 SHP(TagViewWidget) CentralWidget::get_tab(ZConstString tag)
 {
     SHP(TagViewWidget) v;
-    MByteArray copy(tag.begin(), 0, tag.len);
+    std::string copy(tag.begin(), 0, tag.len);
     auto iter = tagviews->find(copy);
     if (iter.is_end())
     {
@@ -80,14 +80,14 @@ SHP(TagViewWidget) CentralWidget::get_tab(ZConstString tag)
 
 void CentralWidget::on_enter()
 {
-    MByteArray addr = edit->text();
+    std::string addr = edit->text();
     //split string of type 127.0.0.1:59000
     auto str_list = addr.split(':');
     if (str_list->size() == 2)
     {
 
         auto iter = str_list->begin();
-        const MByteArray& ip = *(iter);
+        const std::string& ip = *(iter);
         ++iter;
         quint16 port = (*iter).toInt();
 
@@ -97,7 +97,7 @@ void CentralWidget::on_enter()
                 this, &CentralWidget::pass_msg, Qt::QueuedConnection);
 
         QMetaObject::invokeMethod(udp.get(), "listen",Qt::QueuedConnection,
-                                  Q_ARG(MByteArray, ip), Q_ARG(quint16, port));
+                                  Q_ARG(std::string, ip), Q_ARG(quint16, port));
     }
 
 }

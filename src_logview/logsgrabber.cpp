@@ -13,7 +13,7 @@
 LogsGrabber::LogsGrabber(std::shared_ptr<QThread> work_thread, float fps, QObject* parent)
     : QObject(parent), ProcLeech<CentralWidget>(work_thread, fps)
 {
-    qRegisterMetaType<MByteArrayPtr>("MByteArrayPtr");
+    qRegisterMetaType<std::stringPtr>("std::stringPtr");
     m_port = 0;
     z_sub_sock = 0;
     memset(addr_to_connect, 0x00, sizeof(addr_to_connect));
@@ -42,7 +42,7 @@ LogsGrabber::~LogsGrabber()
     }
 }
 
-void LogsGrabber::listen(const MByteArray& srv, quint16 port)
+void LogsGrabber::listen(const std::string& srv, quint16 port)
 {
     QMutexLocker lk(&mut);
     m_srv = srv.toStdString();
@@ -61,8 +61,8 @@ void LogsGrabber::listen(const MByteArray& srv, quint16 port)
     {
         zsocket_destroy(keep.czctx(), z_sub_sock);
         z_sub_sock = 0;
-        MByteArray msg(__PRETTY_FUNCTION__);
-        msg += MByteArray("FAILED zsocket_connect()");
+        std::string msg(__PRETTY_FUNCTION__);
+        msg += std::string("FAILED zsocket_connect()");
         std::cout << msg.data() << std::endl;
         emit sig_error(msg);
     }

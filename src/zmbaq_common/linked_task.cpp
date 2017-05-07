@@ -57,7 +57,7 @@ LinkedTask* FuncNeu(LinkedTask* RootNodePtr)
   }
   return p;
 }
-void FuncDeleteNode(LinkedTask* RootNodePtr, LinkedTask* node_ptr)
+static inline void FuncDeleteNode(LinkedTask* RootNodePtr, LinkedTask* node_ptr)
 {
     delete node_ptr;
     RootNodePtr->utilPtr->counter.fetch_sub(1);
@@ -177,6 +177,17 @@ LinkedTask* LinkedTask::spawnChildNode(LinkedTask*& expelledChild)
     std::cerr << ex.what() << std::endl;
   }
   return nullptr;
+}
+
+LinkedTask* LinkedTask::spawnChildNode()
+{
+  LinkedTask* ptr = nullptr;
+  auto neu = spawnChildeNode(ptr);
+  if (nullptr != ptr)
+    {
+      ptr->utilPtr->deleteNode(ptr);
+    }
+  return neu;
 }
 
 size_t ForEachOnBranch(LinkedTask* head, std::function<void(LinkedTask*)> functor,
