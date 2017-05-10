@@ -97,13 +97,13 @@ void App::Start()
 
                 if (!ok)
                 {
-//                    AERROR(ZCSTR("Failed to open/parse JSON config file\n"));
+//                    AERROR(std::string("Failed to open/parse JSON config file\n"));
                     return;
                 }
                 break;
             }
         }
-//        AERROR(ZCSTR("No input config file provided.\n"));
+//        AERROR(std::string("No input config file provided.\n"));
     }
 }
 

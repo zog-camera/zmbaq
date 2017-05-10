@@ -113,7 +113,7 @@ void PacketsPocket::dump_packets(seq_key_t& last_pkt_stamp, FFileWriterBase* pff
 //        snprintf(msg, sizeof(msg),
 //                 "file: %s frames sequence with %lu frames. Head timesec: %lf, pts: %lu\n",
 //                pfile->path().data(), deq.size(), (*cursor).first, (*cursor).second);
-//        LDEBUG(ZCSTR("avpacket"), ZConstString(msg, strlen(msg)));
+//        LDEBUG(std::string("avpacket"), ZConstString(msg, strlen(msg)));
 
         for (; cursor != deq.end(); ++cursor)
         {

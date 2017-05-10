@@ -285,7 +285,7 @@ _on_fail_:
 //#ifndef NDEBUG
 //        auto mb_log = packet_to_string("in", av_in_fmt_ctx,
 //                                       const_cast<AVPacket*>(input_avpacket));
-//        LDEBUG(ZCSTR("avpacket"), mb_log.get_const_str());
+//        LDEBUG(std::string("avpacket"), mb_log.get_const_str());
 //#endif
 
         /** file size indication. Note: always access packet data before *_write_frame()

@@ -123,9 +123,8 @@ static void make_item_abspath(std::string& path, const FSItem* item)
 }
 
 
-FSHelper::FSHelper(Poco::Channel* logChannel)
+FSHelper::FSHelper()
 {
-  logChannelPtr = logChannel;
   ZMB::Settings* settings = ZMB::Settings::instance();
 
   auto settingsLk = settings->getLocker(); (void)settingsLk;

@@ -71,9 +71,9 @@ Settings::Settings()
 {
   auto lk = getLocker();
 
-  set(ZMKW_LOGPORT, ZCSTR("59000"), lk);
-  set(ZMKW_LOGSERVER, ZCSTR("127.0.0.1"), lk);
-  set(ZMKW_LOGPROTO, ZCSTR("ZMG_PUB"), lk);
+  set(ZMKW_LOGPORT, std::string("59000"), lk);
+  set(ZMKW_LOGSERVER, std::string("127.0.0.1"), lk);
+  set(ZMKW_LOGPROTO, std::string("ZMG_PUB"), lk);
   ZConstString home_str((const char*)secure_getenv("HOME"));
   set(ZMB::ZMKW_USER_HOME, home_str, lk);
 
@@ -92,14 +92,14 @@ Settings::Settings()
     *end = '\0';
     set(key, ZConstString(origin, end), lk);
   };
-  __set_value(ZCSTR("/zmbaq_config.json"), ZMKW_CFG_LOCATION);
+  __set_value(std::string("/zmbaq_config.json"), ZMKW_CFG_LOCATION);
 
   /** TODO: platform-dependent temporary storage. **/
-  __set_value(ZCSTR("/tmp/video_temp"), ZMKW_FS_TEMP_LOCATION);
-  __set_value(ZCSTR("/tmp/video_perm"), ZMKW_FS_PERM_LOCATION);
+  __set_value(std::string("/tmp/video_temp"), ZMKW_FS_TEMP_LOCATION);
+  __set_value(std::string("/tmp/video_perm"), ZMKW_FS_PERM_LOCATION);
 
-  __set_value(ZCSTR("/tmp/test_db"), ZMKW_TESTDB_LOCATION);
-  __set_value(ZCSTR("/tmp/test_blob_db"), ZMKW_TESTDBBLOB_LOCATION);
+  __set_value(std::string("/tmp/test_db"), ZMKW_TESTDB_LOCATION);
+  __set_value(std::string("/tmp/test_blob_db"), ZMKW_TESTDBBLOB_LOCATION);
 }
 
 void Settings::set(ZConstString key, const Json::Value& val, Locker_t& lk)
@@ -140,23 +140,7 @@ Json::Value* Settings::getAll(Locker_t& lk)
   return &all;
 }
 
-//double-check singleton:
-std::shared_ptr<Settings> Settings::m_instance;
-std::mutex Settings::m_mutex;
 
-Settings* Settings::instance()
-{
-    if (nullptr != m_instance)
-      {
-        return m_instance.get();
-      }
-    std::lock_guard<std::mutex> lock(m_mutex);
-    if (nullptr == m_instance)
-    {
-        m_instance = std::make_shared<Settings>();
-    }
-    return m_instance.get();
-}
 //-----------------------------------------------------------
 
 

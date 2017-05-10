@@ -20,7 +20,6 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef FSHELPER_H
 #define FSHELPER_H
 #include "zmbaq_common/zmbaq_common.h"
-#include "zmbaq_common/mbytearray.h"
 #include <atomic>
 #include "Poco/Channel.h"
 
@@ -30,9 +29,6 @@ namespace ZMFS {
 using namespace ZMBCommon;
 
 class FSHelper;
-
-ZM_DEF_STATIC_CONST_STRING(KW_VIDEO_FILE, "video_file")
-ZM_DEF_STATIC_CONST_STRING(KW_SCR_FILE, "screenshot_file")
 
 //---------------------------------------------------------
 class FSLocation
@@ -46,7 +42,7 @@ public:
 #endif
     ;
 
-    enum Type{FS_VOID, FS_TEMP, FS_PERMANENT_LOCAL, FS_PERMANENT_REMOTE/*S3 or DB*/};
+    enum class Type{FS_VOID, FS_TEMP, FS_PERMANENT_LOCAL, FS_PERMANENT_REMOTE/*S3 or DB*/};
 
     explicit FSLocation();
     FSLocation(const FSLocation& other) = default;
@@ -58,7 +54,7 @@ public:
     /** The provided unsafe buffer must contain enough space!*/
     bool absolute_path(ZUnsafeBuf& str, const ZConstString& fname) const;
 
-    Type type;
+    FSLocation::Type type = FSLocation::Type::FS_VOID;
     std::string location; //< A path to a directory or remote URL
 };
 
@@ -96,7 +92,7 @@ class FSHelper
 public:
     std::function<void(const FSHelper&, const FSItem&)> sig_file_stored;
 
-    explicit FSHelper(Poco::Channel* logChannel = nullptr);
+    FSHelper();
     virtual ~FSHelper();
 
     /** If empty, then it is initially set to values in ZMB::Settings.*/
@@ -117,7 +113,6 @@ public:
     /** Remove the file if it's temporary.*/
     bool utilize(const FSItem* item);
 
-    Poco::Channel* logChannelPtr;
     FSLocation temp_location;
     FSLocation perm_location;
 };

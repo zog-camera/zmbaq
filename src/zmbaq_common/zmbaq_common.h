@@ -21,13 +21,12 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define ZMBAQ_COMMON_H
 
 #include <memory>
-#include <new>
 #include <cassert>
 #include <mutex>
+#include <array>
 
 #include "noncopyable.hpp"
-#include "zmb_str.h"
-#include "mbytearray.h"
+
 
 /** A short define for shared pointer*/
 #ifndef SHP
@@ -62,24 +61,36 @@ static bool is_big_endian() { return !is_little_endian();}
 static endianness get_endiannes() {return (endianness)is_little_endian();}
 
 template<typename T>
-T max(T a, T b)
+T g_max(T a, T b)
 {return a < b? b : a;}
 
 template<typename T>
-T min(T a, T b)
+T g_min(T a, T b)
 {return a > b? b : a;}
 
-
-//key words for accessing set/get methods of the Settings class.
-ZM_DEF_STATIC_CONST_STRING(ZMKW_LOGSERVER, "log_server")
-ZM_DEF_STATIC_CONST_STRING(ZMKW_LOGPROTO, "log_proto")
-ZM_DEF_STATIC_CONST_STRING(ZMKW_LOGPORT, "log_port")
-ZM_DEF_STATIC_CONST_STRING(ZMKW_CFG_LOCATION, "config_location")
-ZM_DEF_STATIC_CONST_STRING(ZMKW_USER_HOME, "HOME")
-ZM_DEF_STATIC_CONST_STRING(ZMKW_FS_TEMP_LOCATION, "fs_temp_location")
-ZM_DEF_STATIC_CONST_STRING(ZMKW_FS_PERM_LOCATION, "fs_perm_location")
-ZM_DEF_STATIC_CONST_STRING(ZMKW_TESTDB_LOCATION, "testdb_locaiton")
-ZM_DEF_STATIC_CONST_STRING(ZMKW_TESTDBBLOB_LOCATION, "testdb_blob_location")
+enum class ZMB_SETTINGS_KW
+{
+  LOGSERVER, LOGPROTO, LOGPORT, CONFIG_LOCATION, USER_HOME, FS_TEMP_LOCATION, FS_PERMANENT_LOCATION, TESTDB_LOCATION, TESTDBBLOB_LOCATION, LAST_ENUM_SIZE_ITEM
+};
+ 
+typedef std::pair<ZMB_SETTINGS_KW, std::string> ZmbSettingsPair;
+typedef std::array<std::pair<ZMB_SETTINGS_KW, std::string>,
+  (int)ZMB_SETTINGS_KW::LAST_ENUM_SIZE_ITEM> ZmbSettingsWords;
+ 
+//get key words for accessing set/get methods of the Settings class.
+ZmbSettingsWords GetSettinsWords()
+{
+  return {
+    ZmbSettingsPair(ZMB_SETTINGS_KW::LOGSERVER, "log_server"),
+      ZmbSettingsPair(ZMB_SETTINGS_KW::LOGPROTOCOL, "log_protocol"),
+      ZmbSettingsPair(ZMB_SETTINGS_KW::LOGPORT, "log_port"),
+      ZmbSettingsPair(ZMB_SETTINGS_KW::CONFIG_LOCATION, "config_location"),
+      ZmbSettingsPair(ZMB_SETTINGS_KW::USER_HOME, "HOME"),
+      ZmbSettingsPair(ZMB_SETTINGS_KW::FS_TEMP_LOCATION, "fs_temp_location"),
+      ZmbSettingsPair(ZMB_SETTINGS_KW::FS_TEMP_LOCATION, "fs_perm_location"),
+      ZmbSettingsPair(ZMB_SETTINGS_KW::TESTDB_LOCATION, "testdb_location")
+      };
+}
 
 using namespace ZMBCommon;
 
@@ -89,8 +100,6 @@ using namespace ZMBCommon;
 class Settings
 {
 public:
-  /** Get singleton object.*/
-  static Settings* instance();
   typedef std::unique_lock<std::mutex> Locker_t;
 
   /** Constructing local object will not make singleton instance.*/
@@ -114,8 +123,6 @@ public:
 
 
 private:
-  static std::shared_ptr<Settings> m_instance;
-  static std::mutex m_mutex; //singleton mutex
   Json::Value all;
 };
 //======================================================================

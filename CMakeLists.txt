@@ -17,7 +17,7 @@ set(ZMQ_DIR "${DEPENDS_ROOT}" CACHE PATH "Path to ZeroMq 4.x version")
 set(OPENCV_DIR "${DEPENDS_ROOT}" CACHE PATH "OpenCV >= 3.0 installation path")
 
 
-set(CMAKE_CXX_FLAGS "-std=c++11 -msse2")
+set(CMAKE_CXX_FLAGS "-std=c++1y -msse2")
 
 add_definitions("-D__STDC_CONSTANT_MACROS -DBOOST_LOG_DYN_LINK")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src/
