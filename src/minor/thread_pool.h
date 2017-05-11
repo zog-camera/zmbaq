@@ -41,7 +41,7 @@ struct TPool_ThreadData
   {
     workQ.reserve(32);
   }
-
+  
   /** Serialize functors to this thread. Call notify() later to take effect.
    * Possible exceptions: bad_alloc.
    * @return count of items serialized */
@@ -55,6 +55,8 @@ struct TPool_ThreadData
   size_t enqueue(std::unique_lock<std::mutex>& lk,
                  CallableDoubleFunc* array, size_t len,
                  IteratorFunc2_t iterFn = PtrForwardIterationDbl);
+  
+  std::unique_lock<std::mutex>&& getLocker() { return std::move(std::unique_lock<std::mutex>(this->mu)); }
 
   /** Must be called when the mutex is unlocked.*/
   void notify() { cond.notify_all();}
