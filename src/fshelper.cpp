@@ -16,11 +16,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 
 
 #include "fshelper.h"
-#include <Poco/File.h>
-#include <Poco/Exception.h>
 #include <assert.h>
-#include "Poco/Message.h"
-#include <Poco/DirectoryIterator.h>
+#include <boost/filesystem.hpp
+#include <cstdlib>
 
 namespace ZMFS {
 
@@ -46,18 +44,6 @@ FSItem& FSItem::operator = (const FSItem& other)
   fsize.store(other.fsize.load());
 }
 
-void FSItem::to_json(Json::Value* jo) const
-{
-    std::string buf;
-    fslocation.absolute_path(buf, ZConstString(fname.data(), fname.size()));
-    Json::Value& val(*jo);
-
-    val["path"] = Json::Value(buf.data());
-    val["filename"] = Json::Value(fname.data());
-    val["location"] = Json::Value(fslocation.location.data());
-    val["type"] = (int)fslocation.type;
-}
-
 bool FSItem::setLocation(FSHelper* helper)
 {
   FSHelper& h(*helper);
@@ -79,13 +65,11 @@ bool FSItem::setLocation(FSHelper* helper)
 //-----------------------------------------------------------------------------
 FSLocation::FSLocation()
 {
-    type = FS_TEMP;
-#ifndef __WIN32
-    location = "/tmp";
+  type = FS_TEMP;
+#if _WIN32 || WIN64
+  temp_location.location = std::getenv("TMP");
 #else
-    auto lk = Settings::instance()->get_locker();
-    location = Settings::instance()->s_get_string(ZMB::ZMKW_USER_HOME, lk);
-    location += "\\tmp";
+  temp_location.location = "/tmp";
 #endif
 }
 
@@ -94,50 +78,23 @@ FSLocation::~FSLocation()
 
 }
 
-
-void FSLocation::absolute_path(std::string& str, const ZConstString& fname) const
+void FSLocation::absolute_path(std::string& str, const std::string& fname) const
 {
   assert(!fname.empty());
   str.reserve(location.size() + 1 + fname.size());
   str += location;
   str += dir_path_sep;
-  str += fname.begin();
-}
-
-bool FSLocation::absolute_path(ZMBCommon::ZUnsafeBuf& str, const ZConstString& fname) const
-{
-  assert(!fname.empty());
-  if (str.size() < (1 + fname.size() + location.size()) )
-    { return false; }
-  char* end = nullptr;
-  str.read(&end, ZMBCommon::bindZCTo(location));
-  *(end) = dir_path_sep; ++end;
-  str.read(&end, fname, end);
-  str.len = end - str.begin();
-  return true;
-}
-// path = location + item_fname
-static void make_item_abspath(std::string& path, const FSItem* item)
-{
-  item->fslocation.absolute_path(path, ZConstString(item->fname.data(), item->fname.size()));
+  str += fname;
 }
 
 
 FSHelper::FSHelper()
 {
-  ZMB::Settings* settings = ZMB::Settings::instance();
-
-  auto settingsLk = settings->getLocker(); (void)settingsLk;
-
-  //temporary storage:
-  ZConstString path = settings->string(ZMB::ZMKW_FS_TEMP_LOCATION, settingsLk);
-  temp_location.location = path.begin();
-  //permanent storage:
-  path = settings->string(ZMB::ZMKW_FS_PERM_LOCATION, settingsLk);
-  perm_location.location = path.begin();
-
+//permanent storage:
+  std::string home(std::getenv("HOME"));
+  perm_location.location = std::getenv("HOME");
+  perm_location.location += "Videos";
   perm_location.type = FSLocation::FS_PERMANENT_LOCAL;
-
 }
 
 FSHelper::~FSHelper()
@@ -145,35 +102,45 @@ FSHelper::~FSHelper()
 
 }
 
-void FSHelper::set_dirs(ZConstString permanent_dir, ZConstString temp_dir)
+void FSHelper::set_dirs(const std::string& permanent_dir, const std::string&temp_dir)
 {
-    static auto fn_make_path = [] (ZMFS::FSLocation& loc)
+    auto fn_make_path = [] (ZMFS::FSLocation& loc)
     {
-       Poco::File dir(loc.location.data());
-       dir.createDirectories();
+      boost::filesystem::path dir(loc.location);
+      try
+	{
+	  boost::filesystem::create_directory(dir);
+	}
+      catch(boost::filesystem::filesystem_error& ex)
+	{
+	  std::cerr << ex.what() << std::endl;
+	}
     };
-    if (!permanent_dir.empty())
-    {
-       perm_location.location = permanent_dir.begin();
-    }
-    if (!temp_dir.empty())
-    {
-        temp_location.location = temp_dir.begin();
-    }
+    assert(!temp_dir.empty());
+    assert(!permanent_dir.empty());
+    
+    perm_location.location = permanent_dir;
+    temp_location.location = temp_dir;
 
     fn_make_path(perm_location);
     fn_make_path(temp_location);
 }
 
 
-FSItem&& FSHelper::spawn_temp(const ZConstString& fname)
+FSItem&& FSHelper::spawn_temp(const std::string& fname)
 {
   return std::move(FSItem(fname, temp_location));
 }
 
-FSItem&& FSHelper::spawn_permanent(const ZConstString& fname)
+FSItem&& FSHelper::spawn_permanent(const std::string& fname)
 {
   return std::move(FSItem(fname, perm_location));
+}
+
+// path = location + item_fname
+static void make_item_abspath(std::string& path, const FSItem* item)
+{
+  item->fslocation.absolute_path(path, fname);
 }
 
 FSItem&& FSHelper::store_permanently(const FSItem* item)
@@ -182,45 +149,39 @@ FSItem&& FSHelper::store_permanently(const FSItem* item)
 
     std::string abs;
     make_item_abspath(abs, &res);
-
-    Poco::File file(abs);//file ("/temp/location/file");
-    if (!file.exists())
-        return std::move(res);
-
+    using BFS = boost::filesystem;
+    
+    BFS::path file(abs);//file ("/temp/location/file");
+    assert(BFS::is_regular_file(file));
     res.fslocation = perm_location;
     make_item_abspath(abs, &res);
+    
     try {
-         //("/temp/location/file") -> ("/storage/location/file)
-        file.moveTo(abs);
-    }catch (Poco::Exception& ex)
-    {
-      if (logChannelPtr)
-        {
-          Poco::Message msg;
-          msg.setSource(std::string(__FUNCTION__));
-          msg.setText(ex.message());
-          logChannelPtr->log(msg);
-        }
-    }
-
-    if (nullptr != sig_file_stored)
-        sig_file_stored(*this, res);
+      //move file ("/temp/location/file") -> ("/storage/location/file)
+      BFS::rename(file, abs);
+    }catch (BFS::filesystem_error& ex)
+      {
+	std::cerr << ex.what() << std::endl;
+      }
     return std::move(res);
 }
 
-bool FSHelper::utilize(const FSItem* item)
+  bool FSHelper::utilize(const FSItem* item)
 {
     std::string abs;
     make_item_abspath(abs, item);
 
-    Poco::File file(abs);
-    bool ok = false;
-    if (file.exists())
-    {
-        ok = true;
-        file.remove();
+    BFS::path file(abs);//file ("/temp/location/file");
+    try {
+      //remove
+      BFS::remove(file);
     }
-    return ok;
+    catch (BFS::filesystem_error& ex)
+      {
+	std::cerr << ex.what() << std::endl;
+	return false;
+      }
+    return true;
 }
 
 } //namespace ZMFS

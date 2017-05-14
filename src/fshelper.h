@@ -19,16 +19,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef FSHELPER_H
 #define FSHELPER_H
-#include "zmbaq_common/zmbaq_common.h"
-#include <atomic>
-#include "Poco/Channel.h"
+#include <string>
 
 
 namespace ZMFS {
-
-using namespace ZMBCommon;
-
-class FSHelper;
 
 //---------------------------------------------------------
 class FSLocation
@@ -49,10 +43,7 @@ public:
     virtual ~FSLocation();
 
     /** Rssize given string and put the an absolute path.*/
-    void absolute_path(std::string& str, const ZConstString& fname) const;
-
-    /** The provided unsafe buffer must contain enough space!*/
-    bool absolute_path(ZUnsafeBuf& str, const ZConstString& fname) const;
+    void absolute_path(std::string& str, const std::string& fname) const;
 
     FSLocation::Type type = FSLocation::Type::FS_VOID;
     std::string location; //< A path to a directory or remote URL
@@ -69,15 +60,7 @@ public:
   FSItem(const FSItem& other);
   FSItem& operator = (const FSItem& other);
 
-  FSItem(const ZConstString& file_name, FSLocation locat = FSLocation());
-
-
-  /** Exports these fields to Json::Value:
-     *  jo["path"] = "full path";
-     *  jo["filename"] = "filename";
-     *  jo["location"] = "/location";
-     *  jo["type"] = "db" || "local" || "remote"; */
-  void to_json(Json::Value* jo) const;
+  FSItem(const std::string& file_name, FSLocation locat = FSLocation());
 
   //set permanent/temporary location depending on this->fslocation->typ
   bool setLocation(FSHelper* helper);
@@ -90,20 +73,18 @@ public:
 class FSHelper
 {
 public:
-    std::function<void(const FSHelper&, const FSItem&)> sig_file_stored;
-
     FSHelper();
     virtual ~FSHelper();
 
     /** If empty, then it is initially set to values in ZMB::Settings.*/
-    void set_dirs(ZConstString permanent_dir = ZConstString(),
-                  ZConstString temp_dir = ZConstString());
+    void set_dirs(const std::string& permanent_dir = std::string(),
+                  cosnt std::string& temp_dir = std::string());
 
     /** Obtain full paths for temporary file creation.*/
-    FSItem&& spawn_temp(const ZConstString& fname);
+    FSItem&& spawn_temp(const std::string& fname);
 
     /** Obtain full paths for permanent file creation.*/
-    FSItem&& spawn_permanent(const ZConstString& fname);
+    FSItem&& spawn_permanent(const std::string& fname);
 
     /** Move temporary file to permanent storage.
      * @param current item location.

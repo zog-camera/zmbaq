@@ -19,8 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef PACKETSPOCKET_H
 #define PACKETSPOCKET_H
-#include "zmbaq_common/zmbaq_common.h"
-#include "zmbaq_common/timingutils.h"
+#include "minor/timingutils.h"
 #include <deque>
 
 extern "C"
@@ -79,8 +78,8 @@ public:
     PacketsPocket();
     virtual ~PacketsPocket();
 
-    void set(double param_buffer_seconds = ZMBAQ_PACKETS_BUFFERING_SECONDS,
-             double param_minimum_movement_seconds = ZMBAQ_MINIMAL_MOVEMENT_SECONDS);
+    void set(double param_buffer_seconds = 60,
+             double param_minimum_movement_seconds = 2);
 
     /** Push packet, keep approx. stable size of the cached packets.*/
     seq_key_t push(SHP(av::Packet) pkt, bool do_delete_obsolete = true);

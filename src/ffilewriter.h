@@ -25,94 +25,63 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include "packetspocket.h"
 #include "fshelper.h"
 
-struct AVFormatContext;
-
 namespace ZMB {
 
-/** Not pure virtual base. throws errors in runtime if pseudo-API
- * methods are called.*/
-class FFileWriterBase : public ZMBCommon::noncopyable
+class FFileWriterErrorHandlerStub
+{
+ public:
+  bool operator()(const std::string& msg)
+  {
+    std::cerr << "FFileWriter reports error: " << msg << "\n";
+  }
+};
+
+/** Writer AV packets to file with container like .mp4 */
+template<class FunctorOnError = FFileWriterErrorHandlerStub, class PImpl = FFileWriterPV>
+class FFileWriter : public ZMBCommon::noncopyable
 {
 public:
   typedef std::unique_lock<std::mutex> Locker_t;
 
-  std::function<void(FFileWriterBase* fptr, const std::string& msg)>
-  sig_error;
+  
+  FFileWriter();
+  FFileWriter(const AVFormatContext *av_in_fmt_ctx, const std::string& dst);
+  virtual ~FFileWriter();
 
-  /** */
-  void raise_fatal_error();
-
-  FFileWriterBase();
-  virtual ~FFileWriterBase();
-
-  virtual bool open(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst) = 0;
-
-  virtual void close() = 0;
-
-
-  /** child's method may increase pb_file_size. */
-  virtual void write(std::shared_ptr<av::Packet> pkt) = 0;
-
+    /** Synchronous and not thread-safe. Makes a copy of the packet.*/
+  bool open(const AVFormatContext *av_in_fmt_ctx, const std::string& dst);
+  void write(AVPacket *input_avpacket);
+  void write(std::shared_ptr<av::Packet> pkt);
+  void close();
 
   bool empty() const {return !is_open;}
   size_t file_size() const {return pb_file_size.load();}
   const std::string& path() const {return dest;}
 
-  std::mutex& mutex();
-  std::unique_lock<std::mutex>&& locker();
+  /** You can set/define functor */
+  FunctorOnError onError;
 
+  std::atomic_uint pb_file_size;
   /** just holds the reference. May be NULL if true == empty().*/
-
   ZMB::PacketsPocket pocket;//< frame buffering.
   ZMB::PacketsPocket::seq_key_t prevPktTimestamp;//< you modify it by hand
 
   void dumpPocketContent(ZMB::PacketsPocket::seq_key_t lastPacketTs);
 
-  std::atomic_uint pb_file_size;
+  
+  //things for locking data access:
+  std::mutex& mutex() { return mu; };
+  Locker_t&& locker()  { return std::move(std::unique_lock<std::mutex>(mu)); }
 
-protected:
+private:
+  FFileWriterPV pv;
   std::mutex mu;
   std::string dest;
   bool is_open;
-
-  void dispatch_error(const std::string& msg)
-  {
-    if (nullptr != sig_error)
-      sig_error(this, msg);
-  }
-
 };
 
-//-------------------------------------------------------------------------
-
-/** Writer AV packets to file with container like .mp4 */
-class FFileWriter :  public ZMB::FFileWriterBase
-{
-
-public:
-  FFileWriter();
-
-  FFileWriter(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst);
-
-  /** Warning! If inherited, you clean up this stuff self.*/
-  virtual ~FFileWriter();
-
-  /** Synchronous and not thread-safe. Makes a copy of the packet.*/
-  virtual bool open(const AVFormatContext *av_in_fmt_ctx, const ZConstString& dst);
-  void write(AVPacket *input_avpacket);
-  void write(std::shared_ptr<av::Packet> pkt);
-  void close();
-
-
-private:
-  struct PV;
-  std::shared_ptr<PV> pv;
-};
-
-typedef std::shared_ptr<FFileWriter> FFileWriterPtr;
-//------------------------------------------------------------
-
-
+#include "ffilewriter_pv.inl.hpp"
+ 
 }//ZMB
 
 #endif //__FFILEWRITER__

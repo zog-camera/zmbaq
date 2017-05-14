@@ -23,22 +23,27 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <glm/vec2.hpp>
 #include <glm/mat2x2.hpp>
 #include <mutex>
+#include "boost/noncopyable.hpp"
+#include "./minor/lockable.hpp"
 
-extern "C" {
-    struct AVFrame;
-    struct AVPicture;
+extern "C"
+{
+#include "libavutil/frame.h"
+#include "libavutil/imgutils.h"
+#include "libavcodec/avcodec.h"
+#include "libswscale/swscale.h"
 }
 
 namespace ZMB {
 
 struct MSize : public glm::ivec2
 {
-    MSize() : glm::ivec2(-1, -1) { }
-    MSize(int _w, int _h) : glm::ivec2(_w, _h) { }
-
-    const int& width() const {return x;}
-    const int& height() const {return y;}
-    int square() const {return x * y;}
+  MSize() : glm::ivec2(-1, -1) { }
+  MSize(int _w, int _h) : glm::ivec2(_w, _h) { }
+  
+  const int& width() const {return x;}
+  const int& height() const {return y;}
+  int square() const {return x * y;}
 };
 
 /** An image region, made using GLM 2x2 iteger matrix as base structure.
@@ -50,136 +55,156 @@ struct MSize : public glm::ivec2
  */
 struct MRegion : public glm::tmat2x2<int, glm::highp>
 {
-    MRegion() : type(col_type(-1, 1), col_type(1, -1))
-    { }
+  MRegion() : type(col_type(-1, 1), col_type(1, -1))
+  { }
 
-    bool valid() const;
-    int width() const;
-    int height() const;
-    int square() const;
+  bool valid() const;
+  int width() const;
+  int height() const;
+  int square() const;
 
-    glm::ivec2& top_left();
-    const glm::ivec2& top_left() const;
+  glm::ivec2& top_left();
+  const glm::ivec2& top_left() const;
 
-    glm::ivec2 top_right() const ;
+  glm::ivec2 top_right() const ;
 
-    glm::ivec2 bottom_left() const ;
+  glm::ivec2 bottom_left() const ;
 
-    const glm::ivec2& bottom_right() const ;
-    glm::ivec2& bottom_right();
+  const glm::ivec2& bottom_right() const ;
+  glm::ivec2& bottom_right();
 
-    int left() const;
-    int right() const;
-    int top() const;
-    int bottom() const;
+  int left() const;
+  int right() const;
+  int top() const;
+  int bottom() const;
 
-//    /*inherited:*/
-//    col_type& operator [](size_t index);
+  //    /*inherited:*/
+  //    col_type& operator [](size_t index);
 
 };
 
 bool operator < (const ZMB::MRegion& lhs, const ZMB::MRegion& rhs);
 
 //-----------------------------------------------------------------------------
-/** Default deleter.*/
+/** Default deleter (av_frame_unref(frame)).*/
 struct FrameDeleter
 {
   //makes av_frame_unref(pframe)
   void operator()(AVFrame* pframe) const;
 };
 
+template<int MAX_SLICES_NUM = 8>
 class PictureHolder
 {
 public:
-  static const int MAX_SLICES_NUM = 8;
-  typedef std::mutex Mutex_t;
-  typedef std::unique_lock<Mutex_t> Lock_t;
-
   //will zero-fill the pointers.
   PictureHolder();
-
-  //calls onDestructCB()
-  virtual ~PictureHolder();
+  PictureHolder(const PictureHolder&) = default;
+  PictureHolder& operator = (const PictureHolder&) = default;
+  
+  PictureHolder(PictureHolder&& rvalue)
+  {
+    dataSlicesArray = std::move(rvalue.dataSlicesArray);
+    stridesArray = std::move(rvalue.stridesArray);
+    format = rvalue.format; dimension = rvalue.dimension;
+    rvalue.format = -1; rvalue.dimension = MSize(-1,-1);
+  }
 
   int fmt() const;
   int w() const;
   int h() const;
 
-
   std::array<uint8_t*, MAX_SLICES_NUM> dataSlicesArray;
   std::array<int, MAX_SLICES_NUM> stridesArray;
   int format;//< constructed as -1, NONE; casted from (enum AVPixelFormat)
   MSize dimension;
-
-  //synchronization mutex:
-  Mutex_t mu;
-
-  //for example: auto lk = mimage->getLocker(); //binded to this->mu
-  Lock_t&& getLocker();
-
-  std::function<void(PictureHolder*)> onDestructCB;
+    
 };
-typedef std::shared_ptr<PictureHolder> PictureHolderPtr;
+
 //-----------------------------------------------------------------------------
-/** Notice! Copying of the object -- is sharing.
- *
+/** 
+ * @tparam TPictureHolder -- you can replace the simple type with something having a destructor etc.
+ * @tparam TImp -- just a pointer-less private implementation parameter.
 */
-class MImage
+ template<class TPictureHolder = PictureHolder,
+   class TLockableObject = ZMB::LockableObject,
+   class TImp = MImagePV>
+class MImage : public boost::noncopyable
 {
-  class MImagePV;
-  std::shared_ptr<MImagePV> pv;
+  TImp pv;
 
 public:
-  //--------------------------------------------------
-  typedef std::mutex Mutex_t;
-  class Lock_t : public std::unique_lock<Mutex_t>
-  {
-  public:
-    Lock_t(Mutex_t& mu, std::shared_ptr<MImagePV> ref)
-      : std::unique_lock<Mutex_t>(mu), refptr(ref)
-    {}
+  //--------------------------------------------------  
+  typename TLockableObject syncObject;
+  typename TLockableObject::Mutex_t& mutex() { return syncObject.mutex();}
 
-    std::shared_ptr<MImagePV> refptr;
-  };
+  //for example: auto lk = mimage.getLocker();
+  typename TLockableObject::Lock_t&& getLocker() const { return syncObject(); }
   //--------------------------------------------------
+  
   MImage();
   virtual ~MImage();
-
+  
   bool empty() const;
-
-  Mutex_t& mutex() const;
-
-  //for example: auto lk = mimage->getLocker();
-  Lock_t&& getLocker() const;
-
+  
   //non thread-safe access:
-  PictureHolderPtr get() const;
+  PictureHolder get() const;
 
   //thread-safe access:
-  PictureHolderPtr getSafe(Lock_t& lk) const;
+  PictureHolder getSafely(typename TLockableObject::Lock_t& lk) const;
 
-  /** @return non-NULL pointer only when the AVFrame pointer was imbued().*/
-  std::shared_ptr<AVFrame> getFrame(Lock_t&);
+  /** @return move out the AVFrame pointer previously was imbued().*/
+  std::unique_ptr<AVFrame> extactFrame();
 
   /** Alloc new image data of given dimensions and format. */
-  PictureHolderPtr create(MSize dim, /*(AVPixelFormat)*/int avpic_fmt, Lock_t&);
+  PictureHolder create(MSize dim, /*(AVPixelFormat)*/int avpic_fmt);
 
   /** Take ownership of the frame data and/or frame pointer.
     * The user must provide custom deleter.
     * @return picture pointers constructed from the frame.
     */
-  PictureHolderPtr imbue(std::shared_ptr<AVFrame> frame, Lock_t&);
+  PictureHolder imbue(std::unique_ptr<AVFrame>& frame);
 
   /** Take ownership of the picture data.
-   *  The shared pointer can be constructed with custom deleter
-   * or without it but with PictureHolder.onDestructCB callback instead.
    */
-  void imbue(PictureHolderPtr picture, Lock_t&);
+  void imbue(PictureHolder&& picture);
 
   /** Make scaled data from other picture */
-  PictureHolderPtr scale(PictureHolderPtr picture, Lock_t&);
+  PictureHolder scale(PictureHolder picture);
 };
 //-----------------------------------------------------------------------------
+ struct SwsDeleter
+ {
+   void operator()(struct SwsContext* pSwsContext)
+   {
+     sws_freeContext(pSwsContext);
+   }
+ };
+class MImagePV
+{
+public:
+    MImagePV()
+    {
+      sws = nullptr;
+      lastCvtFmt = -1;
+      lastCvtSize = MSize(0,0);
+    }
 
+    PictureHolder picture;
+    MSize lastCvtSize;
+    int lastCvtFmt;
+    
+    //mutex is exposed in MImage for locking
+    std::mutex mu;
+    
+    //this field used only when you explicitly MImage::imbue(frame) with a deleter
+    std::unique_ptr<AVFrame> frame_p;
+    
+    //used for re-scaling
+    std::unique_ptr<struct SwsContext> sws;
+};
 }//ZMB
+
+#include "mimage.inl.hpp"
+
 #endif // MIMAGE_H
