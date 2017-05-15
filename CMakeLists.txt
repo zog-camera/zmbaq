@@ -6,7 +6,7 @@ set(zmbaq_VERSION "0.0.1")
 option(WITH_PROFILER "Enable gperftools" OFF)
 option(WITH_ADDRESS_SANITIZER "Enable memory access sanitizer." OFF)
 option(WITH_DEBUG "Enable debug symbols." ON)
-option(WITH_GUI "Build the GUI" ON)
+option(WITH_GUI "Build the GUI" OFF)
 option(NO_V4L "Disable Video4Linux support" OFF)
 
 set(HOMIAK "$ENV{HOME}")
@@ -56,10 +56,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # libzmbsrc: common things library
 # common cpps
 add_subdirectory(src)
+
 # libvideoentity
-add_subdirectory(src_videoentity)
-# RTSP dumper:
-# add_subdirectory(src_rtsp_dumper)
+#add_subdirectory(src_videoentity)
+
 ##########################################
 
 if (WITH_GUI)
@@ -68,8 +68,8 @@ endif()
 
 ### TESTS ##
 ## test applications:
-add_subdirectory(unit_tests/test_ThreadPool)
-add_subdirectory(unit_tests/test_videoentity)
+#add_subdirectory(unit_tests/test_ThreadPool)
+#add_subdirectory(unit_tests/test_videoentity)
 
 
 
