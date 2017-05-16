@@ -11,7 +11,7 @@ option(NO_V4L "Disable Video4Linux support" OFF)
 
 set(HOMIAK "$ENV{HOME}")
 
-set(DEPENDS_ROOT "$ENV{HOME}/mycode/zmbaq/deps" CACHE PATH "Dependency installation directory.")
+set(DEPENDS_ROOT "$ENV{BROOT}" CACHE PATH "Dependency installation directory.")
 set(URHO3D_DIR "${DEPENDS_ROOT}" CACHE PATH "Path to Urho3D install dir")
 set(ZMQ_DIR "${DEPENDS_ROOT}" CACHE PATH "Path to ZeroMq 4.x version")
 set(OPENCV_DIR "${DEPENDS_ROOT}" CACHE PATH "OpenCV >= 3.0 installation path")

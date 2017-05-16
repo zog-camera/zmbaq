@@ -21,46 +21,41 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define PACKETSPOCKET_H
 #include "minor/timingutils.h"
 #include <deque>
+#include <vector>
+#include <memory>
 
 extern "C"
 {
 #include "libavutil/rational.h"
 }
 
-struct AVPacket;
+
+#include "ffilewriter.h"
+
+/*struct AVPacket;
 namespace av
 {
         class Packet;
-}
+        }*/
 
 namespace ZMB {
+  
 
-class FFileWriterBase;
+class AFrameWriterDelegate
+{
+public:
+  void operator()(AVPacket *packet) {(void)packet;}
+};
 
 /** Buffers packets that not older than @param_buffer_seconds. Allows to dump them to file/stream.*/
 class PacketsPocket
 {
 public:
-    /** A timestamp the double value is relative to the beginnning of the buffering.
-     * pair(Time in seconds, pts in time_base) */
-    class seq_key_t
-    {
-    public:
-        seq_key_t() : d_seconds(0.0), d_pts_unit(0)  { }
-        seq_key_t(const double& s, const int64_t& pts) : d_seconds(s), d_pts_unit(pts) {}
-        const double& seconds() const {return d_seconds;}
-        const int64_t& pts() const {return d_pts_unit;}
-        double* p_seconds() {return &d_seconds;}
-        int64_t* p_pts() {return &d_pts_unit;}
-
-    private:
-        double d_seconds;
-        int64_t d_pts_unit;
-    };
 
     /** Describes timestamped sequence of packets with a keyframe as the heading.*/
 
-    typedef std::pair<seq_key_t, SHP(av::Packet)> marked_pkt_t;
+    typedef std::shared_ptr<av::Packet> AvPacketPtr;
+    typedef std::pair<seq_key_t, AvPacketPtr> marked_pkt_t;
     typedef std::vector<marked_pkt_t> packet_seq_base_t;
 
     /** Has a keyframe as first element, other packets are related to that keyframe.*/
@@ -82,12 +77,12 @@ public:
              double param_minimum_movement_seconds = 2);
 
     /** Push packet, keep approx. stable size of the cached packets.*/
-    seq_key_t push(SHP(av::Packet) pkt, bool do_delete_obsolete = true);
+    seq_key_t push(AvPacketPtr pkt, bool do_delete_obsolete = true);
 
     /** Dump all packets not present in file.
      * If pkt_stamp == 0, then gets all packets from range(0,buffering_seconds).
      * Else dumps all packets newer than the timestamp. */
-    void dump_packets(seq_key_t& last_pkt_stamp, FFileWriterBase* pffilewriterbase);
+    void dump_packets(seq_key_t& last_pkt_stamp, ZMB::FFileWriter* pfile);
 
     /** Reset for each new file:*/
     TimingUtils::LapTimer laptime;

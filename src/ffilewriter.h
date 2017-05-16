@@ -22,66 +22,146 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <memory>
 #include <string>
+#include <iostream>
+#include <boost/noncopyable.hpp>
 #include "packetspocket.h"
 #include "fshelper.h"
+extern "C"
+{
+    #include <libavcodec/avcodec.h>
+    #include <libavformat/avformat.h>
+    #include <libavutil/mathematics.h>
+    #include <libavutil/timestamp.h>
+}
+#include "external/avcpp/src/packet.h"
+#include <cassert>
+#include <atomic>
+#include <utility>
+#include "minor/lockable.hpp"
 
 namespace ZMB {
 
-class FFileWriterErrorHandlerStub
-{
- public:
-  bool operator()(const std::string& msg)
+  /** A timestamp the double value is relative to the beginnning of the buffering.
+   * pair(Time in seconds, pts in time_base) */
+  class seq_key_t : public std::pair<double, int64_t>
   {
-    std::cerr << "FFileWriter reports error: " << msg << "\n";
-  }
-};
+  public:
+  seq_key_t() : d_seconds(0.0), d_pts_unit(0)  { }
+  seq_key_t(const double& s, const int64_t& pts) : d_seconds(s), d_pts_unit(pts) {}
+    
+    double seconds() const {return first;}
+    int64_t pts() const {return second;}
+
+    double& seconds() {return first;}
+    int64_t& pts() {return second;}
+    
+
+  private:
+    double d_seconds;
+    int64_t d_pts_unit;
+  };
+
+  class FFileWriterErrorHandlerStub
+  {
+  public:
+    bool operator()(const std::string& msg)  {
+      std::cerr << "FFileWriter reports error: " << msg << "\n";
+    }
+  };
+
+  template<class T>
+    class FFileWriterPV;
+
 
 /** Writer AV packets to file with container like .mp4 */
-template<class FunctorOnError = FFileWriterErrorHandlerStub, class PImpl = FFileWriterPV>
-class FFileWriter : public ZMBCommon::noncopyable
-{
-public:
-  typedef std::unique_lock<std::mutex> Locker_t;
+  template<class PImpl = FFileWriterPV<FFileWriterErrorHandlerStub> >
+    class FFileWriter : public boost::noncopyable
+    {
+    public:
+    typedef std::unique_lock<std::mutex> Locker_t;
 
   
-  FFileWriter();
-  FFileWriter(const AVFormatContext *av_in_fmt_ctx, const std::string& dst);
-  virtual ~FFileWriter();
+    FFileWriter();
+    FFileWriter(const AVFormatContext *av_in_fmt_ctx, const std::string& dst);
+    virtual ~FFileWriter();
 
     /** Synchronous and not thread-safe. Makes a copy of the packet.*/
-  bool open(const AVFormatContext *av_in_fmt_ctx, const std::string& dst);
-  void write(AVPacket *input_avpacket);
-  void write(std::shared_ptr<av::Packet> pkt);
-  void close();
+    bool open(const AVFormatContext *av_in_fmt_ctx, const std::string& dst);
+    void write(AVPacket *input_avpacket);
+    void write(std::shared_ptr<av::Packet> pkt);
+    void close();
 
-  bool empty() const {return !is_open;}
-  size_t file_size() const {return pb_file_size.load();}
-  const std::string& path() const {return dest;}
+    bool empty() const {return !is_open;}
+    size_t file_size() const {return pv.pb_file_size.load();}
+    const std::string& path() const {return dest;}
 
-  /** You can set/define functor */
-  FunctorOnError onError;
+    /** You can set/define functor */
 
-  std::atomic_uint pb_file_size;
-  /** just holds the reference. May be NULL if true == empty().*/
-  ZMB::PacketsPocket pocket;//< frame buffering.
-  ZMB::PacketsPocket::seq_key_t prevPktTimestamp;//< you modify it by hand
+    /** just holds the reference. May be NULL if true == empty().*/
+    ZMB::PacketsPocket pocket;//< frame buffering.
+    ZMB::seq_key_t prevPktTimestamp;//< you modify it by hand
 
-  void dumpPocketContent(ZMB::PacketsPocket::seq_key_t lastPacketTs);
+    void dumpPocketContent(ZMB::seq_key_t lastPacketTs);
 
   
-  //things for locking data access:
-  std::mutex& mutex() { return mu; };
-  Locker_t&& locker()  { return std::move(std::unique_lock<std::mutex>(mu)); }
+    //things for locking data access:
+    ZMB::LockableObject pbLockable;
 
-private:
-  FFileWriterPV pv;
-  std::mutex mu;
-  std::string dest;
-  bool is_open;
-};
+
+    private:
+    PImpl pv;
+    std::string dest;
+    bool is_open;
+    };
+
+  template<class PImpl>
+    FFileWriter<PImpl>::FFileWriter()
+  {
+    is_open = false;
+  }
+
+  template<class PImpl>
+    FFileWriter<PImpl>::FFileWriter(const AVFormatContext *av_in_fmt_ctx, const std::string& dst)
+  {
+    open(av_in_fmt_ctx, dst);
+  }
+
+  template<class PImpl>
+    FFileWriter<PImpl>::~FFileWriter()
+  {
+    close();
+  }
+
+  template<class PImpl>
+    bool FFileWriter<PImpl>::open(const AVFormatContext *av_in_fmt_ctx, const std::string& dst)
+  {
+    pv = PImpl(this, av_in_fmt_ctx, dst);
+    is_open = pv.open(dst);
+    return is_open;
+  }
+
+  template<class PImpl>
+    void FFileWriter<PImpl>::write(std::shared_ptr<av::Packet> pkt)
+  {
+    pv.write(pkt);
+  }
+
+  template<class PImpl>
+    void FFileWriter<PImpl>::close()
+  {
+    if (is_open)
+      pv.close();
+    is_open = false;
+  }
+
+  template<class PImpl>
+    void FFileWriter<PImpl>::dumpPocketContent(ZMB::seq_key_t lastPacketTs)
+  {
+    pocket.dump_packets(lastPacketTs, this);
+  }
+
+}//ZMB
 
 #include "ffilewriter_pv.inl.hpp"
- 
-}//ZMB
 
 #endif //__FFILEWRITER__

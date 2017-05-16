@@ -19,7 +19,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #ifndef FSHELPER_H
 #define FSHELPER_H
+
 #include <string>
+#include <atomic>
 
 
 namespace ZMFS {
@@ -50,6 +52,7 @@ public:
 };
 
 //---------------------------------------------------------
+ 
 class FSItem
 {
 public:
@@ -61,9 +64,6 @@ public:
   FSItem& operator = (const FSItem& other);
 
   FSItem(const std::string& file_name, FSLocation locat = FSLocation());
-
-  //set permanent/temporary location depending on this->fslocation->typ
-  bool setLocation(FSHelper* helper);
 
   FSLocation fslocation;
   std::string fname; //< in default constructor has 0-len, must be set.
@@ -77,8 +77,8 @@ public:
     virtual ~FSHelper();
 
     /** If empty, then it is initially set to values in ZMB::Settings.*/
-    void set_dirs(const std::string& permanent_dir = std::string(),
-                  cosnt std::string& temp_dir = std::string());
+    void set_dirs(const std::string& permanent_dir,
+                  std::string temp_dir = std::string());
 
     /** Obtain full paths for temporary file creation.*/
     FSItem&& spawn_temp(const std::string& fname);
@@ -92,7 +92,7 @@ public:
     FSItem&& store_permanently(const FSItem* item);
 
     /** Remove the file if it's temporary.*/
-    bool utilize(const FSItem* item);
+    bool utilize(const FSItem& item);
 
     FSLocation temp_location;
     FSLocation perm_location;

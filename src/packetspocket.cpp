@@ -86,12 +86,11 @@ PacketsPocket::seq_key_t PacketsPocket::push(std::shared_ptr<av::Packet> pkt, bo
     return key;
 }
 
-void PacketsPocket::dump_packets(seq_key_t& last_pkt_stamp, FFileWriterBase* pffilewriterbase)
+  void PacketsPocket::dump_packets(seq_key_t& last_pkt_stamp, ZMB::FFileWriter* pfile)
 {
     if (frames_sequences.empty())
         return;
 
-    ZMB::FFileWriterBase* pfile = dynamic_cast<ZMB::FFileWriterBase*>(pffilewriterbase);
     /* Write the compressed frame to the media file. */
     assert(nullptr != pfile && false == pfile->empty());
 
