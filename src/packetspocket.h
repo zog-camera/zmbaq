@@ -55,19 +55,9 @@ public:
     /** Describes timestamped sequence of packets with a keyframe as the heading.*/
 
     typedef std::shared_ptr<av::Packet> AvPacketPtr;
-    typedef std::pair<seq_key_t, AvPacketPtr> marked_pkt_t;
-    typedef std::vector<marked_pkt_t> packet_seq_base_t;
-
-    /** Has a keyframe as first element, other packets are related to that keyframe.*/
-    class PacketsSequence : public packet_seq_base_t
-    {
-    public:
-        using packet_seq_base_t::packet_seq_base_t;
-        PacketsSequence& operator += (const marked_pkt_t& pkt);
-
-    };
-
-    typedef std::pair<seq_key_t, PacketsSequence> seq_item_t;
+    typedef std::pair<seq_key_t, AvPacketPtr> MarkedPacket;
+    typedef std::vector<MarkedPacket> PacketsSequence;
+    typedef std::pair<seq_key_t, PacketsSequence> TimedFrameSequencePair;
     //-----------------------------------------------------
 
     PacketsPocket();
@@ -79,17 +69,23 @@ public:
     /** Push packet, keep approx. stable size of the cached packets.*/
     seq_key_t push(AvPacketPtr pkt, bool do_delete_obsolete = true);
 
-    /** Dump all packets not present in file.
-     * If pkt_stamp == 0, then gets all packets from range(0,buffering_seconds).
-     * Else dumps all packets newer than the timestamp. */
-    void dump_packets(seq_key_t& last_pkt_stamp, ZMB::FFileWriter* pfile);
 
     /** Reset for each new file:*/
     TimingUtils::LapTimer laptime;
+    
+    /** Visit an object to dump all packets not present in file.
+     * If pkt_stamp == 0, then gets all packets from range(0,buffering_seconds).
+     * Else dumps all packets newer than the timestamp.
+     * @param last_pkt_stamp -- upper limit of a timestamp of packets we're going to dump.
+     * @param acceptorObject -- must have "<Any> accept(AvPacketPtr)" method;
+     */
+
+    template<class FrameAcceptor>
+    void visit(seq_key_t& last_pkt_stamp, FrameAcceptor& acceptorObject);
 
 protected:
     /** Frame sequences map. First frame in each sequence is a keyframe.*/
-    typedef std::deque<seq_item_t> multiseq_t;
+    typedef std::deque<TimedFrameSequencePair> multiseq_t;
     multiseq_t frames_sequences;
 
     /* Set if we need to make cache of frames for writing on
@@ -102,10 +98,49 @@ protected:
 
 
     int64_t prev_pts;
-    char msg[256];
     AVRational t_base;
 
 };
+
+template<class FrameAcceptor>
+void PacketsPocket::visit(seq_key_t& last_pkt_stamp, FrameAcceptor& acceptorObject)
+{
+  if (frames_sequences.empty())
+    return;
+
+  auto reverseIt = frames_sequences.rbegin();
+  //find last keyframe that is older then given timestamp
+  int64_t _pts = reverseIt->first.pts();
+  for (;
+       reverseIt != frames_sequences.rend() && _pts >= last_pkt_stamp.pts();
+       ++reverseIt, _pts = reverseIt->first.pts())
+  {/*span to find item*/
+      
+  }
+
+  auto f_write_sequence = [&](const TimedFrameSequencePair& val, const seq_key_t& start_mark)
+    {
+      const PacketsSequence& deq(val.second);
+      auto cursor = deq.begin();
+      for (const MarkedPacket& packet : deq)
+      {
+        if (packet.first.pts() < start_mark.pts())
+          continue;
+        acceptorObject->accept(cursor->second);
+        //I guess that there is always >= 1 element:
+        last_pkt_stamp = packet.first;
+      }
+    };
+
+  //write all packets newer than provided timestamp
+  for (auto normalIterator = (reverseIt + 1).base();
+       normalIterator != frames_sequences.end();
+       ++normalIterator)
+  {
+    f_write_sequence(*normalIterator, last_pkt_stamp);
+  }
+
+}
 
 }//namespace ZMB
 

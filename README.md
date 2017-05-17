@@ -17,22 +17,17 @@ to filesystem, just to test existing implementation entities of the C++ code.
 Current work is focused on motion detection algorithms via OpenCV, GUI client is next.
 
 
-Authors: Alexander Sorvilov, Bogdan Maslowsky.
+Authors: Alexander Sorvilov(ideas,concept, financial aid), Bohdan Maslovskyi(development), Olexii Shevchenko(development).
 
 # Dependencies:
-+ libc6-dev-i386
 + libzip
 + libasan
-+ gcc-4.8-multilib
-+ g++-4.8-multilib
 + libx264 (in system)
-+ >= ffmpeg-2.2 (flags: --with-encoder=libx264 --enable-gpl)
++ >= ffmpeg-3.0 (flags: --with-encoder=libx264 --enable-gpl)
 + ZeroMQ 4.x
 + CZMQ 3.x (depends on ZeroMQ4.x)
-+ Poco
-+ OpenCV
-+ libjsoncpp-dev
-+ PostgreSQL 
++ OpenCV 3.x
++ libboost >= 1.55
 + Urho3D game engine for the GUI
 
 ## Preconditions
@@ -91,21 +86,6 @@ CZMQ will probably look for ZMQ at /usr/local prefix.
   For windows: install Boost libraries into "broot" directory.
   Linux: install libboost_system >=1.55 libboost_thread >= 1.55
 
-> sudo apt-get install libc6-dev-i386 gcc-4.8-multilib g++-4.8-multilib libboost-thread1.55-dev libboost-system1.55-dev
-
-### Install Poco C++ library
-It requires CMake 3.0 or higher, it may be compiled and installed into "broot"
-
-Should be deployed in "broot" directory, for example: "/home/user/broot"
-Prepend this string to the file "build_cmake.sh" if CMake is located in broot:
-> export LD_LIBRARY_PATH=$broot/lib:$LD_LIBRARY_PATH
-
-Build and install Poco:
-> bash build_cmake.sh
-
-### Install packages related to JSON
-> sudo apt-get install libjsoncpp-dev libmicrohttpd-dev libargtable2-dev
-
 
 ### Install or compile OpenCV
 http://opencv.org
@@ -122,17 +102,14 @@ Should be deployed in "broot" directory, for example: "C:\Users\Max\broot"
 > cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/broot
 > make -j2 && make install
 
-### Install LevelDB library
-> sudo aptitude install  postgresql libpqxx-dev
-
 
 ### Compile the project:
 > cd zmbaq
 > mkdir build
 > # linux:
-> cmake .. -DQT5_CMAKE_ROOT=$HOME/Qt/5.3/gcc_64/lib/cmake -DFFMPEG_DIR=$HOME/broot -DZMQ_DIR=$HOME/broot
+> cmake .. -DFFMPEG_DIR=$HOME/broot -DZMQ_DIR=$HOME/broot
 
 > # windows (fix the path where lib/cmake/ directory of Qt5 is located on windows):
-> cmake .. -DQT5_CMAKE_ROOT="C:\Users\Max\Qt\5.4\mingw\lib\cmake" -DFFMPEG_DIR="C:\Users\Max\broot" -DZMQ_DIR="C:\Users\Max\broot"
+> cmake .. -DFFMPEG_DIR="C:\Users\Max\broot" -DZMQ_DIR="C:\Users\Max\broot"
 
 

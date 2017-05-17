@@ -60,6 +60,10 @@ namespace ZMB {
     double d_seconds;
     int64_t d_pts_unit;
   };
+  static bool operator < (const seq_key_t& lhs, const seq_key_t& rhs)
+  {
+    return lhs.pts() < rhs.pts();
+  }
 
   class FFileWriterErrorHandlerStub
   {
@@ -85,10 +89,20 @@ namespace ZMB {
     FFileWriter(const AVFormatContext *av_in_fmt_ctx, const std::string& dst);
     virtual ~FFileWriter();
 
+    //accept packets from visitors:
+    void accept(std::shared_ptr<av::Packet> pkt)
+    { write(pkt); }
+    
+    //accept packets from visitors:    
+    void accept(AVPacket* pkt)
+    { write(pkt); }
+
     /** Synchronous and not thread-safe. Makes a copy of the packet.*/
     bool open(const AVFormatContext *av_in_fmt_ctx, const std::string& dst);
     void write(AVPacket *input_avpacket);
     void write(std::shared_ptr<av::Packet> pkt);
+    
+
     void close();
 
     bool empty() const {return !is_open;}
@@ -98,15 +112,10 @@ namespace ZMB {
     /** You can set/define functor */
 
     /** just holds the reference. May be NULL if true == empty().*/
-    ZMB::PacketsPocket pocket;//< frame buffering.
-    ZMB::seq_key_t prevPktTimestamp;//< you modify it by hand
-
-    void dumpPocketContent(ZMB::seq_key_t lastPacketTs);
-
+    ZMB::seq_key_t prevPktTimestamp;//< you modify it by hand if you need it
   
     //things for locking data access:
     ZMB::LockableObject pbLockable;
-
 
     private:
     PImpl pv;
@@ -152,12 +161,6 @@ namespace ZMB {
     if (is_open)
       pv.close();
     is_open = false;
-  }
-
-  template<class PImpl>
-    void FFileWriter<PImpl>::dumpPocketContent(ZMB::seq_key_t lastPacketTs)
-  {
-    pocket.dump_packets(lastPacketTs, this);
   }
 
 }//ZMB

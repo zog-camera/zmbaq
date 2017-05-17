@@ -52,7 +52,7 @@
 URHO3D_DEFINE_APPLICATION_MAIN(ZMGUI::App)
 
 #include "json/reader.h"
-#include "zmbaq_common/zmb_str.h"
+
 
 namespace ZMGUI {
 
@@ -90,17 +90,7 @@ void App::Start()
             const Urho3D::String& arg_str = (*iter);
             if (arg_str.Contains(ext_json))
             {
-                bool ok = false;
-                cfg = ZMBEntities::jvalue_from_file(ok, ZMBCommon::ZConstString(arg_str.CString(), arg_str.Length()));
-                suo = ZMBEntities::SurvlObj();
-                ok = suo.create((const Json::Value*)&cfg);
-
-                if (!ok)
-                {
-//                    AERROR(std::string("Failed to open/parse JSON config file\n"));
-                    return;
-                }
-                break;
+              //TODO: fix
             }
         }
 //        AERROR(std::string("No input config file provided.\n"));

@@ -26,8 +26,7 @@
 #include "commandsintepreter.h"
 #include "console.h"
 
-#include "zmbaq_common/zmbaq_common.h"
-#include "../src_videoentity/survlobj.h"
+#include "../src/minor/lockable.hpp"
 #include <Poco/ThreadPool.h>
 
 namespace Urho3D
@@ -85,8 +84,6 @@ private:
 
     SharedPtr<ZMGUI::Console> console;
     SharedPtr<ZMGUI::CommandsInterpreter> cmd_interpet;
-
-    ZMBEntities::SurvlObj suo; //< video survl. object
 
 };
 }//nm ZMGUI

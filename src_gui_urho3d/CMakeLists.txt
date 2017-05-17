@@ -18,5 +18,5 @@ add_executable(zmbaq_gui ${files_gui} ${RC_OUT})
 target_link_libraries(zmbaq_gui
     ${ASAN_LINK_FLAGS} ${PROF_LINK_FLAGS}
     ${u3dlib} -ldl -lGL -lGLEW
- videoentity
+
 )
