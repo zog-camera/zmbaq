@@ -77,7 +77,7 @@ public:
      * If pkt_stamp == 0, then gets all packets from range(0,buffering_seconds).
      * Else dumps all packets newer than the timestamp.
      * @param last_pkt_stamp -- upper limit of a timestamp of packets we're going to dump.
-     * @param acceptorObject -- must have "<Any> accept(AvPacketPtr)" method;
+     * @param acceptorObject -- must have "<Any> operator()(AvPacketPtr)" method;
      */
 
     template<class FrameAcceptor>
@@ -126,7 +126,7 @@ void PacketsPocket::visit(seq_key_t& last_pkt_stamp, FrameAcceptor& acceptorObje
       {
         if (packet.first.pts() < start_mark.pts())
           continue;
-        acceptorObject->accept(cursor->second);
+        acceptorObject.operator()(cursor->second);
         //I guess that there is always >= 1 element:
         last_pkt_stamp = packet.first;
       }

@@ -27,10 +27,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 namespace ZMFS {
 
 //---------------------------------------------------------
+ /** A filesystem location : local directory or remote cloud bucket.*/
 class FSLocation
 {
 public:
-    static const char dir_path_sep =
+    static constexpr char dir_path_sep =
 #ifndef __WIN32
     '/'
 #else
@@ -40,8 +41,10 @@ public:
 
     enum class Type{FS_VOID, FS_TEMP, FS_PERMANENT_LOCAL, FS_PERMANENT_REMOTE/*S3 or DB*/};
 
-    explicit FSLocation();
+    FSLocation();
     FSLocation(const FSLocation& other) = default;
+    FSLocation(FSLocation&& other) = default;
+    FSLocation& operator = (const FSLocation& other) = default;
     virtual ~FSLocation();
 
     /** Rssize given string and put the an absolute path.*/
@@ -52,18 +55,18 @@ public:
 };
 
 //---------------------------------------------------------
- 
+/** A filesystem item : remote or local.*/
 class FSItem
 {
 public:
-
-  explicit FSItem(FSLocation locat = FSLocation());
-
-  /** copy ctor will not copy on_destruction() callback, set it manually.*/
+  FSItem(FSLocation&& locat);
+  
+  FSItem();
   FSItem(const FSItem& other);
+  FSItem(FSItem&& other) = default;
   FSItem& operator = (const FSItem& other);
 
-  FSItem(const std::string& file_name, FSLocation locat = FSLocation());
+  FSItem(const std::string& file_name, FSLocation&& locat);
 
   FSLocation fslocation;
   std::string fname; //< in default constructor has 0-len, must be set.
@@ -89,10 +92,11 @@ public:
     /** Move temporary file to permanent storage.
      * @param current item location.
      * @return new item values. */
-    FSItem&& store_permanently(const FSItem* item);
+    FSItem&& store_permanently(FSItem&& item);
 
-    /** Remove the file if it's temporary.*/
-    bool utilize(const FSItem& item);
+    /** Remove the file if it's temporary and, possibly,
+        re-use the FSItem object internally.*/
+    bool utilize(FSItem&& item);
 
     FSLocation temp_location;
     FSLocation perm_location;

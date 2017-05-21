@@ -22,31 +22,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.*/
 #include <iostream>
 
 namespace ZMFS {
-
-  FSItem::FSItem(FSLocation locat) : fslocation(locat)
-  {
-  }
-
-  FSItem::FSItem(const std::string& file_name, FSLocation locat)
-    : fslocation(locat)
-  {
-    fname = file_name;
-  }
-
-  FSItem::FSItem(const FSItem& other)
-  {
-    this->operator =(other);
-  }
-
-  FSItem& FSItem::operator = (const FSItem& other)
-  {
-    fslocation = other.fslocation;
-    fname = other.fname;
-    fsize.store(other.fsize.load());
-  }
-
-
-//-----------------------------------------------------------------------------
+  
   FSLocation::FSLocation()
   {
     type = FSLocation::Type::FS_TEMP;
@@ -81,6 +57,47 @@ namespace ZMFS {
     perm_location.type = FSLocation::Type::FS_PERMANENT_LOCAL;
   }
 
+  //-------------------------------------------------------------------
+  FSItem::FSItem()
+  {
+    fsize.store(0);
+  }
+  
+  FSItem::FSItem(FSLocation&& locat) : FSItem()
+  {
+    fslocation = std::move(locat);
+  }
+
+  FSItem::FSItem(const std::string& file_name, FSLocation&& locat)
+    : FSItem()
+  {
+    fslocation = std::move(locat);
+    fname = file_name;
+    
+    std::string path;
+    fslocation.absolute_path(path, fname);
+    
+    try {
+      fsize.store(boost::filesystem::file_size(boost::filesystem::path(path)));
+    }catch(...)
+    {   }
+  }
+
+  FSItem::FSItem(const FSItem& other)
+  {
+    this->operator =(other);
+  }
+
+  
+  FSItem& FSItem::operator = (const FSItem& other)
+  {
+    fslocation = other.fslocation;
+    fname = other.fname;
+    fsize.store(other.fsize.load());
+  }
+
+
+//-----------------------------------------------------------------------------
   FSHelper::~FSHelper()
   {
 
@@ -113,32 +130,35 @@ namespace ZMFS {
 
   FSItem&& FSHelper::spawn_temp(const std::string& fname)
   {
-    return std::move(FSItem(fname, temp_location));
+    return std::move(FSItem(fname, std::move(FSLocation(temp_location)) ));
   }
 
   FSItem&& FSHelper::spawn_permanent(const std::string& fname)
   {
-    return std::move(FSItem(fname, perm_location));
+    return std::move(FSItem(fname, std::move(FSLocation(perm_location)) ));
   }
 
 // path = location + item_fname
-  static void make_item_abspath(std::string& path, const FSItem& item)
+  template<typename TItem = FSItem>
+  static FSItem&& make_item_abspath(std::string& path, FSItem&& item)
   {
     item.fslocation.absolute_path(path, item.fname);
+    return std::move(item);
   }
 
-  FSItem&& FSHelper::store_permanently(const FSItem* item)
+  FSItem&& FSHelper::store_permanently(FSItem&& item)
   {
-    FSItem res = FSItem(*item);
-
+    //get full path of the original location:
     std::string abs;
-    make_item_abspath(abs, res);
+    item = std::move(make_item_abspath(abs, std::move(item)));
+    
     using namespace boost::filesystem;
     
     path file(abs);//file ("/temp/location/file");
     assert(is_regular_file(file));
-    res.fslocation = perm_location;
-    make_item_abspath(abs, res);
+    //get full path of the new location
+    item.fslocation = perm_location;
+    item = std::move(make_item_abspath(abs, std::move(item)));
     
     try {
       //move file ("/temp/location/file") -> ("/storage/location/file)
@@ -147,14 +167,14 @@ namespace ZMFS {
     {
       std::cerr << ex.what() << std::endl;
     }
-    return std::move(res);
+    return std::move(item);
   }
 
-  bool FSHelper::utilize(const FSItem& item)
+  bool FSHelper::utilize(FSItem&& item)
   {
     using namespace boost::filesystem;
     std::string abs;
-    make_item_abspath(abs, item);
+    item = std::move(make_item_abspath(abs, std::move(item)));
 
     path file(abs);//file ("/temp/location/file");
     try {
