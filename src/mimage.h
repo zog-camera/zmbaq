@@ -34,6 +34,7 @@ extern "C"
 #include "libswscale/swscale.h"
 }
 
+
 namespace ZMB {
 
 struct MSize : public glm::ivec2
@@ -53,7 +54,7 @@ struct MSize : public glm::ivec2
   idx 1 [ y1    y2   ]
   @endverbatim
  */
-struct MRegion : public glm::tmat2x2<int, glm::highp>
+struct MRegion : public glm::detail::tmat2x2<int, glm::highp>
 {
   MRegion() : type(col_type(-1, 1), col_type(1, -1))
   { }
@@ -122,11 +123,13 @@ public:
 };
 
 //-----------------------------------------------------------------------------
+class MImagePV;
+
 /** 
  * @tparam TPictureHolder -- you can replace the simple type with something having a destructor etc.
  * @tparam TImp -- just a pointer-less private implementation parameter.
 */
- template<class TPictureHolder = PictureHolder,
+ template<class TPictureHolder = PictureHolder<8>,
    class TLockableObject = ZMB::LockableObject,
    class TImp = MImagePV>
 class MImage : public boost::noncopyable
@@ -135,7 +138,7 @@ class MImage : public boost::noncopyable
 
 public:
   //--------------------------------------------------  
-  typename TLockableObject syncObject;
+  TLockableObject syncObject;//< sync object: using mutex or dull stub (depends on TLockableObject)
   typename TLockableObject::Mutex_t& mutex() { return syncObject.mutex();}
 
   //for example: auto lk = mimage.getLocker();
@@ -148,49 +151,57 @@ public:
   bool empty() const;
   
   //non thread-safe access:
-  PictureHolder get() const;
+  TPictureHolder get() const;
 
   //thread-safe access:
-  PictureHolder getSafely(typename TLockableObject::Lock_t& lk) const;
+  TPictureHolder getSafely(typename TLockableObject::Lock_t& lk) const;
 
   /** @return move out the AVFrame pointer previously was imbued().*/
   std::unique_ptr<AVFrame> extactFrame();
 
   /** Alloc new image data of given dimensions and format. */
-  PictureHolder create(MSize dim, /*(AVPixelFormat)*/int avpic_fmt);
+  TPictureHolder create(MSize dim, /*(AVPixelFormat)*/int avpic_fmt);
 
   /** Take ownership of the frame data and/or frame pointer.
     * The user must provide custom deleter.
     * @return picture pointers constructed from the frame.
     */
-  PictureHolder imbue(std::unique_ptr<AVFrame>& frame);
+  TPictureHolder imbue(std::unique_ptr<AVFrame>& frame);
 
   /** Take ownership of the picture data.
    */
-  void imbue(PictureHolder&& picture);
+  void imbue(TPictureHolder&& picture);
 
   /** Make scaled data from other picture */
-  PictureHolder scale(PictureHolder picture);
+  TPictureHolder scale(TPictureHolder picture);
+
+  //
+  std::unique_ptr<AVFrame> extractFrame();
 };
 //-----------------------------------------------------------------------------
- struct SwsDeleter
+ class SwsObj : public boost::noncopyable
  {
-   void operator()(struct SwsContext* pSwsContext)
-   {
-     sws_freeContext(pSwsContext);
-   }
+ public:
+   SwsObj(struct SwsContext* pSws = nullptr) : sws(pSws) { }
+   virtual ~SwsObj() { if (sws) sws_freeContext(sws); }
+
+   SwsObj(SwsObj&& rhs) { sws = rhs.sws; rhs.sws = nullptr; }
+   
+   struct SwsContext* get() const { return sws; }
+   
+   struct SwsContext* sws;
  };
+
 class MImagePV
 {
 public:
     MImagePV()
     {
-      sws = nullptr;
       lastCvtFmt = -1;
       lastCvtSize = MSize(0,0);
     }
 
-    PictureHolder picture;
+    PictureHolder<8> picture;
     MSize lastCvtSize;
     int lastCvtFmt;
     
@@ -201,7 +212,7 @@ public:
     std::unique_ptr<AVFrame> frame_p;
     
     //used for re-scaling
-    std::unique_ptr<struct SwsContext> sws;
+    SwsObj sws;
 };
 }//ZMB
 

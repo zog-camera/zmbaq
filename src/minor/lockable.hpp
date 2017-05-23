@@ -1,6 +1,7 @@
 #ifndef LOCKABLE_HPP
 #define LOCKABLE_HPP
 #include <mutex>
+#include "boost/noncopyable.hpp"
 
 namespace ZMB
 {
@@ -14,7 +15,7 @@ namespace ZMB
   
   template<typename TMutexStub = ZMB::None,
            typename TGuard = ZMB::None>
-  struct NonLockableObject
+  struct NonLockableObject : public boost::noncopyable
   {
     typedef TGuard Lock_t;
     typedef TMutexStub Mutex_t;
