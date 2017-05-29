@@ -27,7 +27,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 namespace ZMFS {
 
 //---------------------------------------------------------
- /** A filesystem location : local directory or remote cloud bucket.*/
+ /** A filesystem location/directory : local directory or remote cloud bucket.*/
 class FSLocation
 {
 public:
@@ -73,6 +73,7 @@ public:
   std::atomic_ulong fsize;
 };
 //---------------------------------------------------------
+/** A builder class that can spawn FSItem objects by a filename.*/
 class FSHelper
 {
 public:
