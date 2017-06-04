@@ -12,7 +12,7 @@ find_library(u3dlib NAMES Urho3D libUrho3D.a
     ${FFMPEG_DIR}/lib)
 message("u3d lib: ${u3dlib} dir: ${URHO3D_DIR}")
 
-file(GLOB_RECURSE files_gui *.cpp *.h)
+file(GLOB_RECURSE files_gui L10n.cpp L10n.h Sample.cpp)
 add_executable(zmbaq_gui ${files_gui} ${RC_OUT})
 
 target_link_libraries(zmbaq_gui

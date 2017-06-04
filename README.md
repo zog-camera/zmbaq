@@ -27,8 +27,10 @@ Authors: Alexander Sorvilov(ideas,concept, financial aid), Bohdan Maslovskyi(dev
 + ZeroMQ 4.x
 + CZMQ 3.x (depends on ZeroMQ4.x)
 + OpenCV 3.x
-+ libboost >= 1.55
++ libboost_filesystem, libboost_asio >= 1.55
 + Urho3D game engine for the GUI
++ RethinkDB
++ rapidjson
 
 ## Preconditions
    Create a directory for the dependencies installation
@@ -36,6 +38,7 @@ Authors: Alexander Sorvilov(ideas,concept, financial aid), Bohdan Maslovskyi(dev
 ```BASH
 	mkdir "C:\Users\Max\broot" #windows
 	mkdir $HOME/broot #linux
+    export BROOT=$HOME/broot # dependencies directory
 ```
 
 
@@ -101,6 +104,16 @@ Should be deployed in "broot" directory, for example: "C:\Users\Max\broot"
 > mkdir build
 > cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/broot
 > make -j2 && make install
+
+### Download and build RethinkgDB C++ driver
+```
+git clone https://github.com/AtnNn/librethinkdbxx.git
+cd librethinkdbxx
+make
+#install to our BROOT directory
+cp -R build/include/* $BROOT/include
+cp -R build/lib* $BROOT/lib
+```
 
 
 ### Compile the project:
