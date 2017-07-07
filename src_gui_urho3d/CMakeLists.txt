@@ -4,9 +4,10 @@ if(URHO3D_DIR)
     include_directories(${URHO3D_DIR}/include/Urho3D/ThirdParty ${URHO3D_DIR}/include/Urho3D/ThirdParty/SDL)
 endif()
 
+link_directories(${DEPENDS_ROOT}/lib)
 
-find_library(u3dlib NAMES Urho3D libUrho3D.a
-	PATHS ${DEPENDS_ROOT}/lib/Urho3D ${DEPENDS_ROOT}/lib
+find_library(u3dlib NAMES libUrho3D.a Urho3D 
+	PATHS ${DEPENDS_ROOT}/lib ${DEPENDS_ROOT}/lib/Urho3D 
     ${URHO3D_DIR}/lib/Urho3D       ${URHO3D_DIR}/lib64/Urho3D
     ${URHO3D_DIR}/lib64 ${URHO3D_DIR}/lib64/Urho3D/
     ${FFMPEG_DIR}/lib)

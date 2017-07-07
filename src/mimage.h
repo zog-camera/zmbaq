@@ -20,6 +20,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef MIMAGE_H
 #define MIMAGE_H
 #include <memory>
+#include <array>
 #include <glm/vec2.hpp>
 #include <glm/mat2x2.hpp>
 #include <mutex>
@@ -54,7 +55,7 @@ struct MSize : public glm::ivec2
   idx 1 [ y1    y2   ]
   @endverbatim
  */
-struct MRegion : public glm::detail::tmat2x2<int, glm::highp>
+struct MRegion : public glm::tmat2x2<int, glm::highp>
 {
   MRegion() : type(col_type(-1, 1), col_type(1, -1))
   { }

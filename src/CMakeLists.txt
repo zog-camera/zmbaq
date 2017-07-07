@@ -6,6 +6,7 @@ add_subdirectory(minor)
 
 file(GLOB src_files *.cpp *.h *.hpp)
 include_directories(src src/zmbaq_common)
+include_directories(${DEPENDS_ROOT}/include/glm ${DEPENDS_ROOT}/glm )
 
 add_library(zmbsrc STATIC ${src_files})
 target_compile_features(zmbsrc PUBLIC cxx_constexpr)

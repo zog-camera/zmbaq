@@ -6,7 +6,7 @@ set(zmbaq_VERSION "0.0.1")
 option(WITH_PROFILER "Enable gperftools" OFF)
 option(WITH_ADDRESS_SANITIZER "Enable memory access sanitizer." OFF)
 option(WITH_DEBUG "Enable debug symbols." ON)
-option(WITH_GUI "Build the GUI" OFF)
+option(WITH_GUI "Build the GUI" ON)
 option(NO_V4L "Disable Video4Linux support" OFF)
 
 set(HOMIAK "$ENV{HOME}")

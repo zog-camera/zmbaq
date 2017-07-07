@@ -41,16 +41,15 @@ Authors: Alexander Sorvilov(ideas,concept, financial aid), Bohdan Maslovskyi(dev
     export BROOT=$HOME/broot # dependencies directory
 ```
 
-
-
 ### submodules checkout
 ```BASH
-git submodule init 
-git submodule update
+cd external/
+git submodule init avcpp
+git submodule update avcpp
 ```
 
 ### FFMPEG
-For linux:
++ For linux:
 > sudo apt-get install libx264-dev
 
 ```BASH
@@ -59,22 +58,32 @@ tar xvf ffmpeg-snapshot-git.tar.bz2
 cd ffmpeg
 ./configure --prefix=$HOME/broot --enable-gpl --enable-libx264 --enable-decoder=h264
 ```
-
-For Windows:
++ For MacOS
+```BASH
+brew install ffmpeg
+```
++ For Windows:
 Download from http://ffmpeg.zeranoe.com/builds/ and deploy libraries into "broot"
 
 ### ZeroMQ 4.x http://zeromq.org
 https://github.com/zeromq/libzmq
++ Linux
 ```BASH
    # linux:
    git clone https://github.com/zeromq/libzmq.git
    ./autogen.sh
    ./configure --prefix=$HOME/broot
    make && make install
+```
 
-   #windows:
++ MacOS
+```
+brew install zmq czmq
+```
+
++ Windows
+```
    # get the build from http://zeromq.org/distro:microsoft-windows (latest 4.x branch)
-
 ```
 
 ### CZMQ 3.x (depends on ZeroMQ)
@@ -87,24 +96,32 @@ CZMQ will probably look for ZMQ at /usr/local prefix.
 
 ### Download and install BOOST libraries
   For windows: install Boost libraries into "broot" directory.
-  Linux: install libboost_system >=1.55 libboost_thread >= 1.55
+  Linux/MacOS: install libboost_system >=1.55 libboost_thread >= 1.55
+  using your package management system or build it.
 
 
 ### Install or compile OpenCV
 http://opencv.org
 Should be deployed in "broot" directory, for example: "C:\Users\Max\broot"
 
-> #windows:
++ Windows:
 > http://sourceforge.net/projects/opencvlibrary/files/opencv-win/3.0.0-beta/
 > #deploy it into "broot" directory
 
-> #linux
-> git clone https://github.com/Itseez/opencv.git
-> cd opencv
-> mkdir build
-> cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/broot
-> make -j2 && make install
++Linux
+```
+git clone https://github.com/Itseez/opencv.git
+cd opencv
+mkdir build
+cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/broot
+make -j2 && make install
+```
 
++ MacOS
+```
+brew tap homebrew/science
+brew install opencv3
+```
 ### Download and build RethinkgDB C++ driver
 ```
 git clone https://github.com/AtnNn/librethinkdbxx.git
@@ -115,14 +132,11 @@ cp -R build/include/* $BROOT/include
 cp -R build/lib* $BROOT/lib
 ```
 
-
 ### Compile the project:
 > cd zmbaq
-> mkdir build
-> # linux:
-> cmake .. -DFFMPEG_DIR=$HOME/broot -DZMQ_DIR=$HOME/broot
+> mkdir build && cd build
+> cmake .. -DDEPENDS_ROOT=$HOME/broot
 
-> # windows (fix the path where lib/cmake/ directory of Qt5 is located on windows):
-> cmake .. -DFFMPEG_DIR="C:\Users\Max\broot" -DZMQ_DIR="C:\Users\Max\broot"
+
 
 
