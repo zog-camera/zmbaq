@@ -53,15 +53,21 @@ namespace ZMB
         } catch(const std::exception& ex)
         {
 	  //call functor on exception
-          onFailFunc.operator()(p, ex.what());
+	  onFailFunc.operator()(data.params, ex.what());
         }
       }
     };
 
+    /**  */
     DBConnectionIgnitor(FnFailFunc onConnectionFail = [](DBAuthParams, std::string whatMsg) { })
     : onFailFunc(onConnectionFail)
     {    }
 
+    /** Submit a task to the thread manager that will connect to a database.
+     * this->onFailFunc() executed if connection fails, it's important to define it's code as well.
+     * @param params: simple authentication parameters.
+     * @param threadsPool: a tasks pool.S
+     * @param postFactumActions: task to be run on successfull connection.*/
     template<class TActionOnConnected>
     void operator()(DBAuthParams params, TPoolSharedPtr threadsPool, TActionOnConnected&&  postFactumActions)
     {

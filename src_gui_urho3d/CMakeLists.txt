@@ -2,12 +2,17 @@ project(zmbaq_gui_proj)
 
 if(URHO3D_DIR)
     include_directories(${URHO3D_DIR}/include/Urho3D/ThirdParty ${URHO3D_DIR}/include/Urho3D/ThirdParty/SDL)
-endif()
+else(URHO3D_DIR)
+    set(URHO3D_DIR ${DEPENDS_ROOT})
+endif(URHO3D_DIR)
 
-link_directories(${DEPENDS_ROOT}/lib)
+link_directories(${DEPENDS_ROOT}/lib ${DEPENDS_ROOT}/lib64 ${DEPENDS_ROOT}/lib64/Urho3D)
 
 find_library(u3dlib NAMES libUrho3D.a Urho3D 
-	PATHS ${DEPENDS_ROOT}/lib ${DEPENDS_ROOT}/lib/Urho3D 
+		PATHS
+ ${CMAKE_SOURCE_DIR}/deps/lib ${CMAKE_SOURCE_DIR}/deps/lib/Urho3D
+
+ ${DEPENDS_ROOT}/lib64/Urho3D ${DEPENDS_ROOT}/lib ${DEPENDS_ROOT}/lib/Urho3D
     ${URHO3D_DIR}/lib/Urho3D       ${URHO3D_DIR}/lib64/Urho3D
     ${URHO3D_DIR}/lib64 ${URHO3D_DIR}/lib64/Urho3D/
     ${FFMPEG_DIR}/lib)

@@ -1,12 +1,13 @@
 project(SrcVideoEntityProj)
 
-set(FFMPEG_DIR "${DEPENDS_ROOT}"
-    CACHE PATH "Path to FFMpeg install dir")
+set(FFMPEG_DIR ${DEPENDS_ROOT} CACHE PATH "Path to FFMpeg install dir")
 
 message("FFMPEG_DIR = ${FFMPEG_DIR}")
+
 if(DEPENDS_ROOT)
-  include_directories(${DEPENDS_ROOT}/include ${DEPENDS_ROOT}/glm)
-  link_directories(${DEPENDS_ROOT}/lib)
+    include_directories(${DEPENDS_ROOT}/include)
+    include_directories(${DEPENDS_ROOT}/glm)
+    link_directories(${DEPENDS_ROOT}/lib)
 endif()
 
 file(GLOB src_lib_ve *.cpp *.h delaunay/*.cpp delaunay/*.h )

@@ -30,7 +30,7 @@ extern "C"
 }
 
 
-#include "ffilewriter.h"
+//#include "ffilewriter.h"
 
 /*struct AVPacket;
 namespace av

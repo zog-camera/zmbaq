@@ -20,9 +20,12 @@ set(OPENCV_DIR "${DEPENDS_ROOT}" CACHE PATH "OpenCV >= 3.0 installation path")
 set(CMAKE_CXX_FLAGS "-std=c++1y -msse2")
 
 add_definitions("-D__STDC_CONSTANT_MACROS -DBOOST_LOG_DYN_LINK")
-include_directories(${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src/
-    ${DEPENDS_ROOT}/include ${DEPENDS_ROOT}/include/jsoncpp
-    ${DEPENDS_ROOT}/include/glm ${DEPENDS_ROOT}/glm )
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/)
+include_directories(${DEPENDS_ROOT}/include)
+include_directories(${DEPENDS_ROOT}/include/jsoncpp)
+include_directories(${DEPENDS_ROOT}/include/glm)
+include_directories(${DEPENDS_ROOT}/glm)
 link_directories(${DEPENDS_ROOT}/lib)
 
 if(NO_V4L)
@@ -58,7 +61,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 add_subdirectory(src)
 
 # libvideoentity
-#add_subdirectory(src_videoentity)
+add_subdirectory(src_videoentity)
 
 ##########################################
 
