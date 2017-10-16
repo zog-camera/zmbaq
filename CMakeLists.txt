@@ -22,10 +22,8 @@ set(CMAKE_CXX_FLAGS "-std=c++1y -msse2")
 add_definitions("-D__STDC_CONSTANT_MACROS -DBOOST_LOG_DYN_LINK")
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/)
-include_directories(${DEPENDS_ROOT}/include)
-include_directories(${DEPENDS_ROOT}/include/jsoncpp)
-include_directories(${DEPENDS_ROOT}/include/glm)
-include_directories(${DEPENDS_ROOT}/glm)
+include_directories(${CMAKE_SOURCE_DIR}/external/rapidjson/include)
+include_directories(${CMAKE_SOURCE_DIR}/external/glm)
 link_directories(${DEPENDS_ROOT}/lib)
 
 if(NO_V4L)
@@ -53,8 +51,24 @@ endif()
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-
-
+##########################################3
+# Build the AVCPP C++ wrapper for FFmpeg:
+set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/external/avcpp/cmake ${CMAKE_MODULE_PATH})
+find_package(Threads)
+#find_package(FFmpeg
+#  COMPONENTS AVCODEC AVFORMAT AVUTIL AVDEVICE AVFILTER SWSCALE SWRESAMPLE REQUIRED
+#  PATHS ${DEPENDS_ROOT} ${DEPENDS_ROOT}/lib ${DEPENDS_ROOT}/include)
+set(CMAKE_PREFIX_PATH ${DEPENDS_ROOT})
+include(${CMAKE_SOURCE_DIR}/external/avcpp/cmake/FindFFmpeg.cmake)
+add_subdirectory(${PROJECT_SOURCE_DIR}/external/avcpp/src)
+add_subdirectory(${PROJECT_SOURCE_DIR}/external/avcpp/example/api2-samples)
+##########################################3
+# Buil V4l2 C++ wrapper:
+if(NOT NO_V4L)
+  file(GLOB v4l2_wrap_files
+    ${PROJECT_SOURCE_DIR}/external/libv4l2cpp/src/*.cpp
+    ${PROJECT_SOURCE_DIR}/external/libv4l2cpp/inc/*.h )
+endif()
 ##########################################3
 # libzmbsrc: common things library
 # common cpps

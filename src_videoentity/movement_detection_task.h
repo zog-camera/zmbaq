@@ -3,17 +3,16 @@
 
 #include <functional>
 #include <memory>
-#include <Poco/Task.h>
 #include "../src/mimage.h"
 
 namespace ZMBEntities {
 
-class MovementDetectionTask : public Poco::Task
+class MovementDetectionTask
 {
 public:
-    MovementDetectionTask(const std::string& name);
+    MovementDetectionTask(const std::string& taskName);
     
-    
+    std::string name;
 };
 
 }//ZMBEntities

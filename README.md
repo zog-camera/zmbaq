@@ -23,14 +23,18 @@ Authors: Alexander Sorvilov(ideas,concept, financial aid), Bohdan Maslovskyi(dev
 + libzip
 + libasan
 + libx264 (in system)
++ yasm (for ffmpeg)
 + >= ffmpeg-3.0 (flags: --with-encoder=libx264 --enable-gpl)
++ libSodium
 + ZeroMQ 4.x
 + CZMQ 3.x (depends on ZeroMQ4.x)
++ Malamute (depends on CZMQ 3.x, libSodium)
 + OpenCV 3.x
 + libboost_filesystem, libboost_asio >= 1.55
 + Urho3D game engine for the GUI
 + RethinkDB
 + rapidjson
++ libv4l2cpp (depends on log4cpp)
 
 ## Preconditions
    Create a directory for the dependencies installation
@@ -44,8 +48,7 @@ Authors: Alexander Sorvilov(ideas,concept, financial aid), Bohdan Maslovskyi(dev
 ### submodules checkout
 ```BASH
 cd external/
-git submodule init avcpp
-git submodule update avcpp
+for item in rapidjson glm avcpp libv4l2cpp; do git submodule init $item && git submodule update $item; done;
 ```
 
 ### FFMPEG
@@ -56,7 +59,7 @@ git submodule update avcpp
 wget http://ffmpeg.org/releases/ffmpeg-snapshot-git.tar.bz2
 tar xvf ffmpeg-snapshot-git.tar.bz2
 cd ffmpeg
-./configure --prefix=$HOME/broot --enable-gpl --enable-libx264 --enable-decoder=h264
+./configure --prefix=$HOME/broot --enable-shared --enable-gpl --enable-libx264 --enable-decoder=h264
 ```
 + For MacOS
 ```BASH
@@ -65,34 +68,25 @@ brew install ffmpeg
 + For Windows:
 Download from http://ffmpeg.zeranoe.com/builds/ and deploy libraries into "broot"
 
-### ZeroMQ 4.x http://zeromq.org
-https://github.com/zeromq/libzmq
-+ Linux
-```BASH
-   # linux:
-   git clone https://github.com/zeromq/libzmq.git
-   ./autogen.sh
-   ./configure --prefix=$HOME/broot
-   make && make install
+### Malamute message broker with dependencies: CZMQ,ZeroMQ,Sodium
+First, install the following configuration tools into your system: m4, automake
+Then compile *Malamute* with the dependencies
+```
+git clone https://github.com/zeromq/malamute.git
+git clone git://github.com/jedisct1/libsodium.git
+git clone git://github.com/zeromq/libzmq.git
+git clone git://github.com/zeromq/czmq.git
+git clone git://github.com/zeromq/malamute.git
+for project in libsodium libzmq czmq malamute; do
+    cd $project
+    ./autogen.sh
+    ./configure --prefix=$BROOT && make check
+    make install
+    ldconfig
+    cd ..
+done
 ```
 
-+ MacOS
-```
-brew install zmq czmq
-```
-
-+ Windows
-```
-   # get the build from http://zeromq.org/distro:microsoft-windows (latest 4.x branch)
-```
-
-### CZMQ 3.x (depends on ZeroMQ)
-CZMQ 3.x(more modern ZMQ C API):
-	http://czmq.zeromq.org/page:get-the-software
-
-> http://download.zeromq.org/czmq-3.0.0-rc1.zip  #for windows
-
-CZMQ will probably look for ZMQ at /usr/local prefix.
 
 ### Download and install BOOST libraries
   For windows: install Boost libraries into "broot" directory.
@@ -122,15 +116,27 @@ make -j2 && make install
 brew tap homebrew/science
 brew install opencv3
 ```
-### Download and build RethinkgDB C++ driver
+### RethinkDB
+Install RethinkDB server from https://www.rethinkdb.com/
+
+Download and build RethinkgDB C++ driver
 ```
-git clone https://github.com/AtnNn/librethinkdbxx.git
-cd librethinkdbxx
+git clone https://github.com/AtnNn/librethinkdbxx.git && cd librethinkdbxx
 make
 #install to our BROOT directory
 cp -R build/include/* $BROOT/include
 cp -R build/lib* $BROOT/lib
 ```
+
+### Compile Urho3D engine:
+> sudo apt-get install libx11-dev # for Ubuntu or similar package for others
+```
+git clone https://github.com/urho3d/Urho3D.git && cd Urho3D
+mkdir build
+cmake -DCMAKE_INSTALL_PREFIX=$BROOT && make install
+
+### Log4Cpp 
+> sudo apt-get install liblog4cpp5-dev
 
 ### Compile the project:
 > cd zmbaq
