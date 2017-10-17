@@ -55,13 +55,10 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 # Build the AVCPP C++ wrapper for FFmpeg:
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/external/avcpp/cmake ${CMAKE_MODULE_PATH})
 find_package(Threads)
-#find_package(FFmpeg
-#  COMPONENTS AVCODEC AVFORMAT AVUTIL AVDEVICE AVFILTER SWSCALE SWRESAMPLE REQUIRED
-#  PATHS ${DEPENDS_ROOT} ${DEPENDS_ROOT}/lib ${DEPENDS_ROOT}/include)
-set(CMAKE_PREFIX_PATH ${DEPENDS_ROOT})
-include(${CMAKE_SOURCE_DIR}/external/avcpp/cmake/FindFFmpeg.cmake)
+set(FFMPEG_LIBRARIES "-lavcodec -lavformat -lavutil -lavdevice -lavfilter -lswscale -lswresample")
+
+# this one exports target library "avcpp" available by getting ${AV_TARGET} value
 add_subdirectory(${PROJECT_SOURCE_DIR}/external/avcpp/src)
-add_subdirectory(${PROJECT_SOURCE_DIR}/external/avcpp/example/api2-samples)
 ##########################################3
 # Buil V4l2 C++ wrapper:
 if(NOT NO_V4L)

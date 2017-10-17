@@ -20,21 +20,21 @@ Current work is focused on motion detection algorithms via OpenCV, GUI client is
 Authors: Alexander Sorvilov(ideas,concept, financial aid), Bohdan Maslovskyi(development), Olexii Shevchenko(development).
 
 # Dependencies:
-+ libzip
-+ libasan
-+ libx264 (in system)
-+ yasm (for ffmpeg)
-+ >= ffmpeg-3.0 (flags: --with-encoder=libx264 --enable-gpl)
-+ libSodium
-+ ZeroMQ 4.x
-+ CZMQ 3.x (depends on ZeroMQ4.x)
-+ Malamute (depends on CZMQ 3.x, libSodium)
-+ OpenCV 3.x
++ libzip (in system)
++ libasan (bundled with the GCC,Clang compilers)
++ libx264 (in system(*.deb, HomeBrew package))
++ yasm (in system(*.deb, HomeBrew package), for ffmpeg)
++ >= ffmpeg-3.0 (flags: --with-encoder=libx264 --enable-gpl) [https://ffmpeg.org]
++ libSodium [git://github.com/jedisct1/libsodium.git]
++ ZeroMQ 4.x [git://github.com/zeromq/libzmq.git]
++ CZMQ 3.x (depends on ZeroMQ4.x) [git://github.com/zeromq/czmq.git]
++ Malamute (depends on CZMQ 3.x, libSodium) [git://github.com/zeromq/malamute.git]
++ OpenCV 3.x [https://github.com/Itseez/opencv.git]
 + libboost_filesystem, libboost_asio >= 1.55
-+ Urho3D game engine for the GUI
-+ RethinkDB
-+ rapidjson
-+ libv4l2cpp (depends on log4cpp)
++ Urho3D game engine for the GUI [https://github.com/urho3d/Urho3D.git]
++ RethinkDB [https://www.rethinkdb.com] [https://github.com/AtnNn/librethinkdbxx.git]
++ rapidjson [http://rapidjson.org/md_doc_tutorial.html][https://github.com/Tencent/rapidjson]
++ libv4l2cpp (depends on log4cpp) [https://github.com/mpromonet/libv4l2cpp.git]
 
 ## Preconditions
    Create a directory for the dependencies installation
@@ -48,10 +48,11 @@ Authors: Alexander Sorvilov(ideas,concept, financial aid), Bohdan Maslovskyi(dev
 ### submodules checkout
 ```BASH
 cd external/
-for item in rapidjson glm avcpp libv4l2cpp; do git submodule init $item && git submodule update $item; done;
+### download thirdparty repositories into ./external:
+for item in rapidjson glm libsodium libzmq czmq malamute avcpp opencv librethinkdbxx libv4l2cpp Urho3D; do git submodule init $item && git submodule update $item; done;
 ```
-
-### FFMPEG
+repositories sources:
+### Build FFMPEG
 + For linux:
 > sudo apt-get install libx264-dev
 
@@ -60,6 +61,7 @@ wget http://ffmpeg.org/releases/ffmpeg-snapshot-git.tar.bz2
 tar xvf ffmpeg-snapshot-git.tar.bz2
 cd ffmpeg
 ./configure --prefix=$HOME/broot --enable-shared --enable-gpl --enable-libx264 --enable-decoder=h264
+make -j$(nproc) install
 ```
 + For MacOS
 ```BASH
@@ -72,11 +74,6 @@ Download from http://ffmpeg.zeranoe.com/builds/ and deploy libraries into "broot
 First, install the following configuration tools into your system: m4, automake
 Then compile *Malamute* with the dependencies
 ```
-git clone https://github.com/zeromq/malamute.git
-git clone git://github.com/jedisct1/libsodium.git
-git clone git://github.com/zeromq/libzmq.git
-git clone git://github.com/zeromq/czmq.git
-git clone git://github.com/zeromq/malamute.git
 for project in libsodium libzmq czmq malamute; do
     cd $project
     ./autogen.sh
@@ -93,6 +90,11 @@ done
   Linux/MacOS: install libboost_system >=1.55 libboost_thread >= 1.55
   using your package management system or build it.
 
+Ubuntu:
+> apt-get install libboost-filesystem-dev libboost-thread-dev libboost-coroutine-dev
+
+MacOS:
+> brew install boost
 
 ### Install or compile OpenCV
 http://opencv.org
@@ -100,15 +102,15 @@ Should be deployed in "broot" directory, for example: "C:\Users\Max\broot"
 
 + Windows:
 > http://sourceforge.net/projects/opencvlibrary/files/opencv-win/3.0.0-beta/
-> #deploy it into "broot" directory
+
+Then deploy it into "broot" directory
 
 +Linux
 ```
-git clone https://github.com/Itseez/opencv.git
-cd opencv
+cd ./external/opencv
 mkdir build
 cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/broot
-make -j2 && make install
+make -j$(nproc) && make install
 ```
 
 + MacOS
@@ -121,21 +123,27 @@ Install RethinkDB server from https://www.rethinkdb.com/
 
 Download and build RethinkgDB C++ driver
 ```
-git clone https://github.com/AtnNn/librethinkdbxx.git && cd librethinkdbxx
-make
+cd ./external/librethinkdbxx
+make -j$(nproc)
 #install to our BROOT directory
 cp -R build/include/* $BROOT/include
 cp -R build/lib* $BROOT/lib
 ```
 
 ### Compile Urho3D engine:
-> sudo apt-get install libx11-dev # for Ubuntu or similar package for others
-```
-git clone https://github.com/urho3d/Urho3D.git && cd Urho3D
-mkdir build
-cmake -DCMAKE_INSTALL_PREFIX=$BROOT && make install
+#### System dependencies
+Ubuntu Linux:
+> sudo apt-get install libx11-dev libgl1-mesa-dev # for Ubuntu or similar package for others
 
-### Log4Cpp 
+#### Compilation
+
+```
+cd ./external/Urho3D
+mkdir build
+cmake -DCMAKE_INSTALL_PREFIX=$BROOT && make -j$(nproc) install
+```
+### (Linux only) Dependency for libv4l2pp:
+#### Log4Cpp 
 > sudo apt-get install liblog4cpp5-dev
 
 ### Compile the project:

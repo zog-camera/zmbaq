@@ -10,3 +10,24 @@
 [submodule "external/glm"]
 	path = external/glm
 	url = https://github.com/g-truc/glm.git
+[submodule "external/Urho3D"]
+	path = external/Urho3D
+	url = https://github.com/urho3d/Urho3D.git
+[submodule "external/opencv"]
+	path = external/opencv
+	url = https://github.com/Itseez/opencv.git
+[submodule "external/librethinkdbxx"]
+	path = external/librethinkdbxx
+	url = https://github.com/AtnNn/librethinkdbxx.git
+[submodule "external/libsodium"]
+	path = external/libsodium
+	url = git://github.com/jedisct1/libsodium.git
+[submodule "external/libzmq"]
+	path = external/libzmq
+	url = git://github.com/zeromq/libzmq.git
+[submodule "external/czmq"]
+	path = external/czmq
+	url = git://github.com/zeromq/czmq.git
+[submodule "external/malamute"]
+	path = external/malamute
+	url = git://github.com/zeromq/malamute.git
