@@ -12,6 +12,9 @@ endif()
 
 if(NOT NO_V4L)
   set(src_l4v ${v4l2_wrap_files})
+  set(V4_LIB "-lv4l2")
+else()
+  set(V4_LIB "")
 endif()
 
 file(GLOB src_lib_ve *.cpp *.h delaunay/*.cpp delaunay/*.h )
@@ -25,7 +28,7 @@ find_library(LOG4_LIB NAMES log4cpp PATHS ${DEPENDS_ROOT}/lib)
 
 include_directories(../external/avcpp/src)
 add_library(videoentity STATIC ${src_lib_ve} ${src_l4v})
-
+target_compile_features(videoentity PUBLIC cxx_constexpr)
 
 target_link_libraries(videoentity zmbsrc
   ${FFMPEG_LIBRARIES} ${LOG4_LIB}

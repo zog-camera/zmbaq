@@ -103,14 +103,12 @@ struct SwsDeleter
 };
 typedef std::unique_ptr<struct SwsContext, SwsDeleter> SwsUniquePtr;
 //-----------------------------------------------------------------------------
-class PictureHolder : public boost::noncopyable
+class PictureHolder
 {
 public:
     static constexpr int MAX_SLICES_NUM = 8;
     //will zero-fill the pointers.
 
-    PictureHolder(const PictureHolder&) = delete;
-    PictureHolder& operator = (const PictureHolder&) = delete;
     PictureHolder()
     {
         stridesArray.fill(0x00);

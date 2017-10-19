@@ -3,6 +3,9 @@ cmake_minimum_required (VERSION 2.8.10)
 project (zmbaq_proj)
 set(zmbaq_VERSION "0.0.1")
 
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 option(WITH_PROFILER "Enable gperftools" OFF)
 option(WITH_ADDRESS_SANITIZER "Enable memory access sanitizer." OFF)
 option(WITH_DEBUG "Enable debug symbols." ON)
@@ -20,6 +23,7 @@ set(OPENCV_DIR "${DEPENDS_ROOT}" CACHE PATH "OpenCV >= 3.0 installation path")
 set(CMAKE_CXX_FLAGS "-std=c++1y -msse2")
 
 add_definitions("-D__STDC_CONSTANT_MACROS -DBOOST_LOG_DYN_LINK")
+include_directories(${DEPENDS_ROOT}/include)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/src/)
 include_directories(${CMAKE_SOURCE_DIR}/external/rapidjson/include)
