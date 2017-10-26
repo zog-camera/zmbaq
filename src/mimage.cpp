@@ -94,6 +94,11 @@ static void InitFromFrame(PictureHolder& ph, AVFrame* frame_p)
 
 PictureHolder::PictureHolder(PictureHolder&& rvalue) : PictureHolder()
 {
+    this->operator =(std::move(rvalue));
+}
+
+PictureHolder& PictureHolder::operator = (PictureHolder&& rvalue)
+{
     frame_p.reset(rvalue.frame_p.release());
     if ( frame_p )
     {

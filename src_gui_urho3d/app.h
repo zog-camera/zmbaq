@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2008-2015 the Urho3D project.
+// Copyright (c) 2008-2017 the Urho3D project.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -23,68 +23,84 @@
 #pragma once
 
 #include "Sample.h"
-#include "commandsintepreter.h"
-#include "console.h"
-
-#include "../src/minor/lockable.hpp"
-#include <Poco/ThreadPool.h>
 
 namespace Urho3D
 {
 
-class Node;
-class Scene;
-class Console;
+class Button;
+class LineEdit;
+class Text;
+class UIElement;
 
 }
 
-namespace ZMGUI {
-
-
-/// Render to texture example
+/// Chat example
 /// This sample demonstrates:
-///     - Creating two 3D scenes and rendering the other into a texture
-///     - Creating rendertarget texture and material programmatically
-class App : public Sample
+///     - Starting up a network server or connecting to it
+///     - Implementing simple chat functionality with network messages
+class Chat : public Sample
 {
-    URHO3D_OBJECT(App, Sample);
+    URHO3D_OBJECT(Chat, Sample);
 
 public:
     /// Construct.
-    App(Context* context);
+    Chat(Context* context);
 
     /// Setup after engine initialization and before running the main loop.
-    virtual void Start();
+    virtual void Start() override;
+
+protected:
+    /// Return XML patch instructions for screen joystick layout for a specific sample app, if any.
+    virtual String GetScreenJoystickPatchString() const override { return
+        "<patch>"
+        "    <add sel=\"/element/element[./attribute[@name='Name' and @value='Button2']]\">"
+        "        <attribute name=\"Is Visible\" value=\"false\" />"
+        "    </add>"
+        "    <add sel=\"/element/element[./attribute[@name='Name' and @value='Hat0']]\">"
+        "        <attribute name=\"Is Visible\" value=\"false\" />"
+        "    </add>"
+        "</patch>";
+    }
 
 private:
+    /// Create the UI.
     void CreateUI();
-    /// Construct the scene content.
-    void CreateScene();
-    /// Construct an instruction text to the UI.
-    void CreateInstructions();
-    /// Set up a viewport for displaying the scene.
-    void SetupViewport();
-    /// Subscribe to application-wide logic update events.
+    /// Subscribe to log message, UI and network events.
     void SubscribeToEvents();
-    /// Read input and moves the camera.
-    void MoveCamera(float timeStep);
-
-    /// Handle the logic update event.
-    void HandleUpdate(StringHash eventType, VariantMap& eventData);
-
-        /// Handle user input either from the engine console or standard input.
-    void HandleInput(const String& input);
-     /// Handle console command event.
-    void HandleConsoleCommand(StringHash eventType, VariantMap& eventData);
-    /// Handle ESC key down event to quit the engine.
-    void HandleKeyDown(StringHash eventType, VariantMap& eventData);
-
-    /// Print text to the engine console and standard output.
-    void Print(const String& output);
-
-    SharedPtr<ZMGUI::Console> console;
-    SharedPtr<ZMGUI::CommandsInterpreter> cmd_interpet;
-
+    /// Create a button to the button container.
+    Button* CreateButton(const String& text, int width);
+    /// Print chat text.
+    void ShowChatText(const String& row);
+    /// Update visibility of buttons according to connection and server status.
+    void UpdateButtons();
+    /// Handle log message event; pipe it also to the chat display.
+    void HandleLogMessage(StringHash eventType, VariantMap& eventData);
+    /// Handle pressing the send button.
+    void HandleSend(StringHash eventType, VariantMap& eventData);
+    /// Handle pressing the connect button.
+    void HandleConnect(StringHash eventType, VariantMap& eventData);
+    /// Handle pressing the disconnect button.
+    void HandleDisconnect(StringHash eventType, VariantMap& eventData);
+    /// Handle pressing the start server button.
+    void HandleStartServer(StringHash eventType, VariantMap& eventData);
+    /// Handle an incoming network message.
+    void HandleNetworkMessage(StringHash eventType, VariantMap& eventData);
+    /// Handle connection status change (just update the buttons that should be shown.)
+    void HandleConnectionStatus(StringHash eventType, VariantMap& eventData);
+    /// Strings printed so far.
+    Vector<String> chatHistory_;
+    /// Chat text element.
+    SharedPtr<Text> chatHistoryText_;
+    /// Button container element.
+    SharedPtr<UIElement> buttonContainer_;
+    /// Server address / chat message line editor element.
+    SharedPtr<LineEdit> textEdit_;
+    /// Send button.
+    SharedPtr<Button> sendButton_;
+    /// Connect button.
+    SharedPtr<Button> connectButton_;
+    /// Disconnect button.
+    SharedPtr<Button> disconnectButton_;
+    /// Start server button.
+    SharedPtr<Button> startServerButton_;
 };
-}//nm ZMGUI
-

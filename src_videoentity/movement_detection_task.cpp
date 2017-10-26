@@ -17,15 +17,15 @@ extern "C"
 #include "../src/mimage.h"
 #include "delaunay/Triangulation.h"
 
-#include <experimental/optional>
-
+#include "../src/zoptional.h"
 
 namespace CVBGS
 {
 
 typedef std::chrono::microseconds Timespan;
 typedef std::chrono::system_clock::time_point Timestamp;
-typedef std::experimental::optional<Timestamp> TimestampOptional;
+typedef ZMB::optional<Timestamp> TimestampOptional;
+typedef ZMB::optional<ZMB::PictureHolder> PictureHolderOptional;
 
 /** A motion detector's point of view on events.
    * That could be either nothing, a light blick, an object motion.
@@ -46,8 +46,8 @@ struct MotionDescription
     State state = State::Null;
 
     //optional input frame payload to carry it over
-    ZMB::PictureHolder inputFrameCargo;
-    ZMB::PictureHolder downscaledInputFrameCargo;
+    PictureHolderOptional inputFrameCargo;
+    PictureHolderOptional downscaledInputFrameCargo;
 };
 
 /** A pair of current timestamp and a time segment.
@@ -311,7 +311,8 @@ public:
         //Determine the scaling factor for the downscale
         //Approximate number of pixels after rescale: full HD downscaled by 8X
 
-        ZMB::MSize inp_sz = res.inputFrameCargo.dimension;
+        ZMB::PictureHolder& inputImage(res.inputFrameCargo.value());
+        ZMB::MSize inp_sz = inputImage.dimension;
         if (params.with_downscale)
         {
             int width   = inp_sz.width();
@@ -322,13 +323,12 @@ public:
             float scale         = std::sqrt((float)(width * height)/refNumPixels);
             int down_w = std::round((float)width / scale);
             int down_h = std::round((float)height / scale);
-            ZMB::PictureHolder& input(res.inputFrameCargo);
-            res.downscaledInputFrameCargo = std::move(res.inputFrameCargo.Scale(input.format, ZMB::MSize(down_w, down_h)));
-            fnImgThreshold(res.downscaledInputFrameCargo);
+            res.downscaledInputFrameCargo = std::move(inputImage.Scale(inputImage.format, ZMB::MSize(down_w, down_h)));
+            fnImgThreshold(res.downscaledInputFrameCargo.value());
         }
         else
         {
-            fnImgThreshold(res.inputFrameCargo);
+            fnImgThreshold(inputImage);
         }
         return std::move(res);
 
@@ -467,7 +467,7 @@ public:
     }
 
     DetectionMode mode;
-    std::shared_ptr<CVBGS::MOG2Algo> full_frame_mog2;
+    std::unique_ptr<CVBGS::MOG2Algo> full_frame_mog2;
     std::map<ZMB::MRegion, std::unique_ptr<CVBGS::MOG2Algo> > rect_zones_map;
 
     std::map<std::string/*name*/, std::vector<glm::ivec2>/*convex hull*/>

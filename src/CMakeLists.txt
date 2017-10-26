@@ -19,3 +19,5 @@ target_link_libraries(zmbsrc  ${ASAN_LINK_FLAGS} ${PROF_LINK_FLAGS}
     -pthread zmbminor ${BOOST_FS} ${FFMPEG_LIBRARIES})
 
 
+add_executable(zmbdaemon main_stub.cpp)
+target_link_libraries(zmbdaemon zmbsrc)

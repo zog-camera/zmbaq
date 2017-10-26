@@ -116,6 +116,7 @@ public:
     }
 
     PictureHolder(PictureHolder&& rvalue);
+    PictureHolder& operator = (PictureHolder&& rvalue);
 
     //take ownership of the frame, also fills the (dataSlircesArray) struct to point to frame's internals
     PictureHolder(AVFrameUniquePtr&& frame);
